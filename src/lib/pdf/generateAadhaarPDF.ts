@@ -44,21 +44,22 @@ interface CellField {
 }
 
 const FIELD_LAYOUTS: Record<string, CellField> = {
-  fullName:         { startX: 138, yOffset: -2, boxWidth: 12.8, boxCount: 30, fontSize: 11 },
-  houseNo:          { startX: 138, yOffset: -2, boxWidth: 12.8, boxCount: 30, fontSize: 11 },
-  street:           { startX: 138, yOffset: -2, boxWidth: 12.8, boxCount: 30, fontSize: 11 },
-  landmark:         { startX: 138, yOffset: -2, boxWidth: 12.8, boxCount: 30, fontSize: 11 },
-  area:             { startX: 138, yOffset: -2, boxWidth: 12.8, boxCount: 30, fontSize: 11 },
-  city:             { startX: 138, yOffset: -2, boxWidth: 12.8, boxCount: 30, fontSize: 11 },
-  postOffice:       { startX: 138, yOffset: -2, boxWidth: 12.8, boxCount: 21, fontSize: 11 },
-  district:         { startX: 138, yOffset: -2, boxWidth: 12.8, boxCount: 21, fontSize: 11 },
-  state:            { startX: 138, yOffset: -2, boxWidth: 12.8, boxCount: 21, fontSize: 11 },
-  pinCode:          { startX: 292, yOffset: -2, boxWidth: 12.8, boxCount: 6,  fontSize: 11 },
-  certName:         { startX: 138, yOffset: -2, boxWidth: 12.8, boxCount: 30, fontSize: 11 },
-  certDesignation:  { startX: 138, yOffset: -2, boxWidth: 12.8, boxCount: 30, fontSize: 11 },
-  certAddress:      { startX: 138, yOffset: -2, boxWidth: 12.8, boxCount: 30, fontSize: 11 },
-  certAddressLine2: { startX: 138, yOffset: -2, boxWidth: 12.8, boxCount: 30, fontSize: 11 },
-  certContact:      { startX: 266, yOffset: -2, boxWidth: 12.8, boxCount: 10, fontSize: 11 },
+  aadhaar:          { startX: 228, yOffset: -1.5, boxWidth: 19.8, boxCount: 12, fontSize: 12 },
+  fullName:         { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
+  houseNo:          { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
+  street:           { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
+  landmark:         { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
+  area:             { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
+  city:             { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
+  postOffice:       { startX: 228, yOffset: -1.8, boxWidth: 23.9, boxCount: 21, fontSize: 11 },
+  district:         { startX: 228, yOffset: -1.8, boxWidth: 23.9, boxCount: 21, fontSize: 11 },
+  state:            { startX: 228, yOffset: -1.8, boxWidth: 23.9, boxCount: 21, fontSize: 11 },
+  pinCode:          { startX: 228, yOffset: -1.2, boxWidth: 31.5, boxCount: 6,  fontSize: 12 },
+  certName:         { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
+  certDesignation:  { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
+  certAddress:      { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
+  certAddressLine2: { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
+  certContact:      { startX: 228, yOffset: -1.5, boxWidth: 23.5, boxCount: 15, fontSize: 11 },
 };
 
 export async function generateAadhaarPDF(formData: FormData, templateBytes: ArrayBuffer): Promise<Uint8Array> {
@@ -129,42 +130,7 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   else if (requestType === "UpdateRequest") drawCheck(485, Y_COORDS.residency);
 
   // 2. Personal Info
-  // Aadhaar Number starts exactly at 6th Full Name box in the actual template
-  const aadhaarStr = String(formData.get("aadhaarNumber") || "").padEnd(12, " ");
-  let aadhaarX = 202; 
-  const aadhaarBoxW = 12.8;
-  const aadhaarY = Y_COORDS.aadhaar - 2;
-  
-  for (let i = 0; i < 12; i++) {
-    if (i === 4 || i === 8) {
-      aadhaarX += aadhaarBoxW; // Empty box gap
-    }
-    
-    if (DEBUG_CELLS) {
-      page.drawRectangle({
-        x: aadhaarX,
-        y: aadhaarY - 5,
-        width: aadhaarBoxW,
-        height: 18,
-        borderColor: rgb(1, 0, 0),
-        borderWidth: 0.3
-      });
-    }
-
-    const char = aadhaarStr[i];
-    if (char !== ' ') {
-      const charWidth = customFont.widthOfTextAtSize(char, 12);
-      const centeredX = aadhaarX + ((aadhaarBoxW - charWidth) / 2);
-      page.drawText(char, {
-        x: centeredX,
-        y: aadhaarY,
-        size: 12,
-        font: customFont,
-        color: rgb(0.1, 0.1, 0.4)
-      });
-    }
-    aadhaarX += aadhaarBoxW;
-  }
+  drawCellField("aadhaar", String(formData.get("aadhaarNumber") || "").padEnd(12, " "), Y_COORDS.aadhaar);
 
   // Draw other fields using field configuration
   drawCellField("fullName", String(formData.get("fullName") || ""), Y_COORDS.name);
