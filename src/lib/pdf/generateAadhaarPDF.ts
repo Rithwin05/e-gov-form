@@ -36,18 +36,7 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   const page = pdfDoc.getPages()[0];
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  
-  // Text drawing helper
-  const drawText = (text: string, x: number, y: number, isBold = false, size = 11) => {
-    if (!text) return;
-    page.drawText(String(text).toUpperCase(), {
-      x,
-      y: y - 2, // slight adjustment for baseline
-      size,
-      font: isBold ? boldFont : font,
-      color: rgb(0.1, 0.1, 0.4), // Dark blue to look like pen
-    });
-  };
+  const courierBoldFont = await pdfDoc.embedFont(StandardFonts.CourierBold);
 
   // Checkmark drawing helper (draws an X at x,y since WinAnsi doesn't support ✓)
   const drawCheck = (x: number, y: number) => {
@@ -59,13 +48,23 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   const BOX_W = 12.8; // Measured exact width of one character box
 
   const drawGridText = (text: string, startX: number, y: number, maxLength: number) => {
-    const str = String(text || "").toUpperCase().replace(/[^A-Z0-9 \/-]/g, '').substring(0, maxLength);
-    let currentX = startX;
+    // Keep reasonable characters. Include period, comma, single quote
+    const str = String(text || "").toUpperCase().replace(/[^A-Z0-9 \/\-.,']/g, '').substring(0, maxLength);
     for (let i = 0; i < str.length; i++) {
-      if (str[i] !== ' ') {
-        drawText(str[i], currentX + 3.0, y, true, 11);
+      const char = str[i];
+      if (char !== ' ') {
+        const boxX = startX + (i * BOX_W);
+        const charWidth = courierBoldFont.widthOfTextAtSize(char, 11);
+        const centeredX = boxX + ((BOX_W - charWidth) / 2);
+        
+        page.drawText(char, {
+          x: centeredX,
+          y: y - 2, // slight adjustment for baseline
+          size: 11,
+          font: courierBoldFont,
+          color: rgb(0.1, 0.1, 0.4),
+        });
       }
-      currentX += BOX_W;
     }
   };
 
@@ -76,7 +75,7 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   else if (residentCategory === "OCI") drawCheck(204, Y_COORDS.residency);
 
   const requestType = formData.get("requestType");
-  if (requestType === "NewEnrolment") drawCheck(412, Y_COORDS.residency);
+  if (requestType === "NewEnrolment") drawCheck(408, Y_COORDS.residency);
   else if (requestType === "UpdateRequest") drawCheck(485, Y_COORDS.residency);
 
   // 2. Personal Info
@@ -87,7 +86,18 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
     if (i === 4 || i === 8) {
       aadhaarX += BOX_W; // Empty box gap
     }
-    if (aadhaarStr[i] !== ' ') drawText(aadhaarStr[i], aadhaarX + 3.0, Y_COORDS.aadhaar, true, 12);
+    const char = aadhaarStr[i];
+    if (char !== ' ') {
+      const charWidth = courierBoldFont.widthOfTextAtSize(char, 12);
+      const centeredX = aadhaarX + ((BOX_W - charWidth) / 2);
+      page.drawText(char, {
+        x: centeredX,
+        y: Y_COORDS.aadhaar - 2,
+        size: 12,
+        font: courierBoldFont,
+        color: rgb(0.1, 0.1, 0.4)
+      });
+    }
     aadhaarX += BOX_W;
   }
 
@@ -187,7 +197,16 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   const dateY = pdf2jsonToPdfLib(0, 8.817).y; // "D D M M Y Y Y Y"
   let dateX = 415;
   for (let i = 0; i < 8; i++) {
-    drawText(dateStr[i], dateX + 3.0, dateY, true, 12);
+    const char = dateStr[i];
+    const charWidth = courierBoldFont.widthOfTextAtSize(char, 12);
+    const centeredX = dateX + ((BOX_W - charWidth) / 2);
+    page.drawText(char, {
+        x: centeredX,
+        y: dateY - 2,
+        size: 12,
+        font: courierBoldFont,
+        color: rgb(0.1, 0.1, 0.4)
+    });
     dateX += BOX_W;
     if (i === 1 || i === 3) dateX += 12; // Gap after DD and MM
   }
