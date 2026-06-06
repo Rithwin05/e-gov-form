@@ -28,6 +28,31 @@ const Y_COORDS = {
   certContact: pdf2jsonToPdfLib(0, 39.42).y,      // Contact Number
 };
 
+export async function generateAadhaarPDF(formData: FormData, templateBytes: ArrayBuffer): Promise<Uint8Array> {
+  // Load the template PDF
+  const pdfDoc = await PDFDocument.load(templateBytes);
+  
+  const page = pdfDoc.getPages()[0];
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  
+  // Text drawing helper
+  const drawText = (text: string, x: number, y: number, isBold = false, size = 11) => {
+    if (!text) return;
+    page.drawText(String(text).toUpperCase(), {
+      x,
+      y: y - 2, // slight adjustment for baseline
+      size,
+      font: isBold ? boldFont : font,
+      color: rgb(0.1, 0.1, 0.4), // Dark blue to look like pen
+    });
+  };
+
+  // Checkmark drawing helper (draws an X at x,y since WinAnsi doesn't support ✓)
+  const drawCheck = (x: number, y: number) => {
+    page.drawText("X", { x, y: y - 2, size: 14, font: boldFont, color: rgb(0.1, 0.1, 0.4) });
+  };
+
   // Start of standard text grids
   const GRID_X = 142;
   const BOX_W = 14.4;
