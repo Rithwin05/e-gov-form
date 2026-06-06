@@ -50,9 +50,9 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
     });
   };
 
-  // Checkmark drawing helper (draws a checkmark at x,y)
+  // Checkmark drawing helper (draws an X at x,y since WinAnsi doesn't support ✓)
   const drawCheck = (x: number, y: number) => {
-    page.drawText("✓", { x, y: y - 2, size: 14, font: boldFont, color: rgb(0.1, 0.1, 0.4) });
+    page.drawText("X", { x, y: y - 2, size: 14, font: boldFont, color: rgb(0.1, 0.1, 0.4) });
   };
 
   // 1. Resident Category & Request Type
