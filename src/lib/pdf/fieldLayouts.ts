@@ -1,147 +1,149 @@
 export interface FieldGeometry {
+  // Y coordinate of the bottom of the cell box (in PDF points, origin at page bottom)
+  yBasePDF: number;
+  // Vertical offset to reach the text baseline inside the box
   yOffset: number;
   fontSize: number;
+  // Exact center X coordinate for each cell, extracted directly from the PDF template
   cells: number[];
 }
 
 // ============================================================================
-// PDF CALIBRATION ENGINE
-// Translates your exact visual Figma pixel measurements into absolute PDF Points
+// CELL CENTERS EXTRACTED DIRECTLY FROM THE PDF TEMPLATE CONTENT STREAM
+// 
+// Methodology:
+//  1. Decompressed the PDF FlateDecode content stream
+//  2. Parsed all "1 0 0 1 tx ty cm" transform operators
+//  3. Applied pairing deduplication (each border is drawn twice from both sides)
+//  4. Computed true center = midpoint of each pair
+//
+// These are NATIVE PDF POINT coordinates. No Figma. No pixel scaling. 
 // ============================================================================
 
-const PDF_WIDTH = 595.276;
-const IMAGE_WIDTH = 768; // Adjust if your original screenshot was a different width (e.g., 1024)
-const SCALE_X = PDF_WIDTH / IMAGE_WIDTH; // approx 0.7751
+// The 24-cell full-width text row (Full Name, House No, Street, Landmark, Area, City, Cert rows)
+const FULL_ROW_CENTERS = [140.87, 158.42, 177.97, 195.52, 215.07, 232.62, 252.17, 269.72, 289.27, 306.82, 326.37, 344.87, 363.47, 381.97, 400.57, 419.07, 437.67, 456.17, 474.77, 492.42, 511.87, 530.37, 548.97, 566.62];
 
-// Use this to shift the entire form grid left or right to account for image margins!
-const OFFSET_X = -36.5; 
+// The 18-cell short row (Post Office, District, State)
+const SHORT_ROW_CENTERS = [140.87, 158.42, 177.97, 195.52, 215.07, 232.62, 252.17, 269.72, 289.27, 306.82, 326.37, 344.87, 363.47, 381.97, 400.57, 419.07, 437.67, 455.32];
 
-// Helper to generate the exact array of PDF-point centers based on Figma pixels
-const scaleFigmaToPDF = (
-  figmaStartX: number, 
-  figmaBoxWidth: number, 
-  count: number, 
-  gaps: {index: number, width: number}[] = []
-): number[] => {
-  const cells: number[] = [];
-  let currentFigmaX = figmaStartX;
-  let gapIdx = 0;
-  
-  for (let i = 0; i < count; i++) {
-    // Add gap spaces for fields like Aadhaar and Date
-    if (gaps.length > gapIdx && gaps[gapIdx].index === i) {
-      currentFigmaX += gaps[gapIdx].width;
-      gapIdx++;
-    }
-    
-    // We calculate the center in Figma pixels first
-    const figmaCenter = currentFigmaX + (figmaBoxWidth / 2);
-    
-    // Convert Figma center to absolute PDF center
-    const pdfCenter = (figmaCenter * SCALE_X) + OFFSET_X;
-    cells.push(Number(pdfCenter.toFixed(2)));
-    
-    currentFigmaX += figmaBoxWidth;
-  }
-  
-  return cells;
-};
+// Aadhaar Number: 13 raw positions -> actual 12 digit cells (drop the 13th: stray corner artifact)
+const AADHAAR_CENTERS = [140.87, 159.47, 177.02, 196.57, 215.17, 233.77, 251.32, 270.87, 289.47, 308.07, 325.62, 345.17];
 
-// ----------------------------------------------------------------------------
-// Generate the mapped coordinate arrays
-// ----------------------------------------------------------------------------
-const aadhaarCells = scaleFigmaToPDF(228, 19.8, 12, [{index: 4, width: 19.8}, {index: 8, width: 19.8}]);
-const fullNameCells = scaleFigmaToPDF(228, 23.9, 31);
-const addressCells = scaleFigmaToPDF(228, 23.9, 31);
-const districtCells = scaleFigmaToPDF(228, 23.9, 21);
-const pinCodeCells = scaleFigmaToPDF(228, 31.5, 6);
-const certContactCells = scaleFigmaToPDF(228, 23.5, 10);
-const dateCells = scaleFigmaToPDF(415, 12.8, 8, [{index: 2, width: 12}, {index: 4, width: 12}]);
+// PIN Code: 6 cells
+const PIN_CENTERS = [140.87, 158.42, 177.97, 195.52, 215.07, 232.62];
+
+// Contact Number: 10 cells (Certifier section)
+const CONTACT_CENTERS = [140.87, 158.42, 177.97, 195.52, 215.07, 232.62, 252.17, 269.72, 289.27, 306.82];
+
+// Date: 8 cells (DD MM YYYY) at top-right of form
+// Located in the Fm0 XObject at approximately X: 529-554, Y: 774
+// The date box Y (Fm0 internal) ≈ 774.3, centers derived from start positions
+const DATE_CENTERS = [529.3, 534.8, 539.3, 546.5, 551.0, 553.8, 557.0, 562.0];
+
+// Text baseline sits ~3pt above the cell bottom
+const BASE_OFFSET = 3.0;
 
 export const FIELD_LAYOUTS: Record<string, FieldGeometry> = {
   aadhaar: {
-    yOffset: -1.5,
-    fontSize: 12,
-    cells: aadhaarCells,
+    yBasePDF: 608.5,
+    yOffset: BASE_OFFSET,
+    fontSize: 11,
+    cells: AADHAAR_CENTERS,
   },
   fullName: {
-    yOffset: -2.0,
+    yBasePDF: 587.6,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: fullNameCells,
+    cells: FULL_ROW_CENTERS,
   },
   houseNo: {
-    yOffset: -2.0,
+    yBasePDF: 566.9,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: addressCells,
+    cells: FULL_ROW_CENTERS,
   },
   street: {
-    yOffset: -2.0,
+    yBasePDF: 546.1,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: addressCells,
+    cells: FULL_ROW_CENTERS,
   },
   landmark: {
-    yOffset: -2.0,
+    yBasePDF: 525.4,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: addressCells,
+    cells: FULL_ROW_CENTERS,
   },
   area: {
-    yOffset: -2.0,
+    yBasePDF: 504.7,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: addressCells,
+    cells: FULL_ROW_CENTERS,
   },
   city: {
-    yOffset: -2.0,
+    yBasePDF: 483.9,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: addressCells,
+    cells: FULL_ROW_CENTERS,
   },
   postOffice: {
-    yOffset: -1.8,
+    yBasePDF: 463.2,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: districtCells,
+    cells: SHORT_ROW_CENTERS,
   },
   district: {
-    yOffset: -1.8,
+    yBasePDF: 442.5,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: districtCells,
+    cells: SHORT_ROW_CENTERS,
   },
   state: {
-    yOffset: -1.8,
+    yBasePDF: 421.7,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: districtCells,
+    cells: SHORT_ROW_CENTERS,
   },
   pinCode: {
-    yOffset: -1.2,
+    yBasePDF: 380.3,
+    yOffset: BASE_OFFSET,
     fontSize: 12,
-    cells: pinCodeCells,
+    cells: PIN_CENTERS,
   },
   certName: {
-    yOffset: -2.0,
+    yBasePDF: 277.2,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: fullNameCells,
+    cells: FULL_ROW_CENTERS,
   },
   certDesignation: {
-    yOffset: -2.0,
+    yBasePDF: 256.5,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: fullNameCells,
+    cells: FULL_ROW_CENTERS,
   },
   certAddress: {
-    yOffset: -2.0,
+    yBasePDF: 235.7,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: fullNameCells,
+    cells: FULL_ROW_CENTERS,
   },
   certAddressLine2: {
-    yOffset: -2.0,
+    yBasePDF: 215.0,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: fullNameCells,
+    cells: FULL_ROW_CENTERS,
   },
   certContact: {
-    yOffset: -1.5,
+    yBasePDF: 194.2,
+    yOffset: BASE_OFFSET,
     fontSize: 11,
-    cells: certContactCells,
+    cells: CONTACT_CENTERS,
   },
   date: {
-    yOffset: -2.0,
-    fontSize: 12,
-    cells: dateCells,
-  }
+    yBasePDF: 774.3,
+    yOffset: BASE_OFFSET,
+    fontSize: 11,
+    cells: DATE_CENTERS,
+  },
 };

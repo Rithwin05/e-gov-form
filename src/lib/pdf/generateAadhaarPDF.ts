@@ -4,37 +4,17 @@ import fs from "fs";
 import path from "path";
 import { FIELD_LAYOUTS } from "./fieldLayouts";
 
-// Helper to convert pdf2json coordinates to pdf-lib coordinates
-// pdf2json unit = 16 points. pdf-lib origin is bottom-left (y goes up).
-// We subtract 13 from Y to drop the text perfectly into the boxes.
-const pdf2jsonToPdfLib = (x: number, y: number) => ({
-  x: x * 16,
-  y: 841.89 - (y * 16) - 13
-});
+// DEBUG: Set to true to draw red dots at exact cell center coordinates
+const DEBUG_CELLS = false;
 
-// Calculate fixed Y coordinates based on the extracted PDF text
-const Y_COORDS = {
-  residency: pdf2jsonToPdfLib(0, 11.823).y,       // Resident / NRI / etc.
-  aadhaar: pdf2jsonToPdfLib(0, 13.274).y,         // Aadhaar Number
-  name: pdf2jsonToPdfLib(0, 14.815).y,            // Full Name
-  houseNo: pdf2jsonToPdfLib(0, 17.383).y,         // C/o / House No
-  street: pdf2jsonToPdfLib(0, 18.68).y,           // Street
-  landmark: pdf2jsonToPdfLib(0, 19.977).y,        // Landmark
-  area: pdf2jsonToPdfLib(0, 21.274).y,            // Area
-  city: pdf2jsonToPdfLib(0, 22.571).y,            // Village/Town/City
-  postOffice: pdf2jsonToPdfLib(0, 23.868).y,      // Post Office
-  district: pdf2jsonToPdfLib(0, 25.165).y,        // District
-  state: pdf2jsonToPdfLib(0, 26.462).y,           // State
-  pinCode: pdf2jsonToPdfLib(0, 29.071).y,         // PIN Code
-  certName: pdf2jsonToPdfLib(0, 34.173).y,        // Name of Certifier
-  certDesignation: pdf2jsonToPdfLib(0, 35.47).y,  // Designation
-  certAddress: pdf2jsonToPdfLib(0, 36.767).y,     // Office Address Line 1
-  certAddressLine2: pdf2jsonToPdfLib(0, 38.06).y, // Office Address Line 2
-  certContact: pdf2jsonToPdfLib(0, 39.42).y,      // Contact Number
+// Checkboxes and certifier type use the old pdf2json Y system (they are not cell-grid fields)
+// These are retained until visually calibrated separately.
+const pdf2jsonY = (pdfJsonY: number) => 841.89 - (pdfJsonY * 16) - 13;
+
+const CHECKBOX_Y = {
+  residency: pdf2jsonY(11.823),
+  certifierType: pdf2jsonY(43.231),
 };
-
-// FIELD CALIBRATION SYSTEM
-const DEBUG_CELLS = true;
 
 export async function generateAadhaarPDF(formData: FormData, templateBytes: ArrayBuffer): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.load(templateBytes);
@@ -45,7 +25,7 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   const page = pdfDoc.getPages()[0];
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   
-  // Embed RobotoMono-Bold TTF
+  // Embed RobotoMono-Bold TTF for perfect monospaced glyph widths
   const fontPath = path.join(process.cwd(), 'public', 'fonts', 'RobotoMono-Bold.ttf');
   const fontBytes = fs.readFileSync(fontPath);
   const customFont = await pdfDoc.embedFont(fontBytes);
@@ -55,24 +35,25 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
     page.drawText("X", { x, y: y - 4, size: 14, font: boldFont, color: rgb(0.1, 0.1, 0.4) });
   };
 
-  // Dedicated Cell Renderer utilizing precomputed cell array coordinates
-  const drawCellField = (fieldId: string, text: string, yBase: number) => {
+  // Cell Renderer: uses PDF-native coordinates from fieldLayouts.ts
+  // yBase is taken directly from layout.yBasePDF (bottom of cell box in PDF point space)
+  const drawCellField = (fieldId: string, text: string) => {
     const layout = FIELD_LAYOUTS[fieldId];
     if (!layout) return;
 
-    const str = String(text || "").toUpperCase().replace(/[^A-Z0-9 \/\-.,']/g, '').substring(0, layout.cells.length);
-    const finalY = yBase + layout.yOffset;
+    const str = String(text || "").toUpperCase().replace(/[^A-Z0-9 \/\-.,'-]/g, '').substring(0, layout.cells.length);
+    const finalY = layout.yBasePDF + layout.yOffset;
 
     for (let i = 0; i < str.length; i++) {
       const char = str[i];
       const centerX = layout.cells[i];
-      if (centerX === undefined) continue; // safety check
-      
+      if (centerX === undefined) continue;
+
       if (DEBUG_CELLS) {
         page.drawCircle({
           x: centerX,
-          y: finalY + 4, // roughly center height
-          size: 1,
+          y: finalY + 5, // visual center of cell height
+          size: 1.5,
           color: rgb(1, 0, 0),
         });
       }
@@ -80,7 +61,6 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
       if (char !== ' ') {
         const charWidth = customFont.widthOfTextAtSize(char, layout.fontSize);
         const drawX = centerX - (charWidth / 2);
-        
         page.drawText(char, {
           x: drawX,
           y: finalY,
@@ -92,105 +72,88 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
     }
   };
 
-  // 1. Resident Category & Request Type
+  // ── 1. Resident Category & Request Type ──────────────────────────────────
   const residentCategory = formData.get("residentCategory");
-  if (residentCategory === "Resident") drawCheck(42, Y_COORDS.residency);
-  else if (residentCategory === "NRI") drawCheck(97, Y_COORDS.residency);
-  else if (residentCategory === "OCI") drawCheck(204, Y_COORDS.residency);
+  if (residentCategory === "Resident") drawCheck(42, CHECKBOX_Y.residency);
+  else if (residentCategory === "NRI") drawCheck(97, CHECKBOX_Y.residency);
+  else if (residentCategory === "OCI") drawCheck(204, CHECKBOX_Y.residency);
 
   const requestType = formData.get("requestType");
-  if (requestType === "NewEnrolment") drawCheck(408, Y_COORDS.residency);
-  else if (requestType === "UpdateRequest") drawCheck(485, Y_COORDS.residency);
+  if (requestType === "NewEnrolment") drawCheck(408, CHECKBOX_Y.residency);
+  else if (requestType === "UpdateRequest") drawCheck(485, CHECKBOX_Y.residency);
 
-  // 2. Personal Info
-  drawCellField("aadhaar", String(formData.get("aadhaarNumber") || "").padEnd(12, " "), Y_COORDS.aadhaar);
+  // ── 2. Personal Info ─────────────────────────────────────────────────────
+  drawCellField("aadhaar", String(formData.get("aadhaarNumber") || ""));
+  drawCellField("fullName", String(formData.get("fullName") || ""));
+  drawCellField("houseNo", String(formData.get("houseNo") || ""));
+  drawCellField("street", String(formData.get("street") || ""));
+  drawCellField("landmark", String(formData.get("landmark") || ""));
+  drawCellField("area", String(formData.get("area") || ""));
+  drawCellField("city", String(formData.get("city") || ""));
 
-  // Draw other fields using field configuration
-  drawCellField("fullName", String(formData.get("fullName") || ""), Y_COORDS.name);
-  drawCellField("houseNo", String(formData.get("houseNo") || ""), Y_COORDS.houseNo);
-  drawCellField("street", String(formData.get("street") || ""), Y_COORDS.street);
-  drawCellField("landmark", String(formData.get("landmark") || ""), Y_COORDS.landmark);
-  drawCellField("area", String(formData.get("area") || ""), Y_COORDS.area);
-  drawCellField("city", String(formData.get("city") || ""), Y_COORDS.city);
-  
-  drawCellField("postOffice", String(formData.get("postOffice") || ""), Y_COORDS.postOffice);
-  drawCellField("district", String(formData.get("district") || ""), Y_COORDS.district);
-  drawCellField("state", String(formData.get("state") || ""), Y_COORDS.state);
-  
-  drawCellField("pinCode", String(formData.get("pinCode") || ""), Y_COORDS.pinCode);
+  // ── 3. Address Sub-fields ────────────────────────────────────────────────
+  drawCellField("postOffice", String(formData.get("postOffice") || ""));
+  drawCellField("district", String(formData.get("district") || ""));
+  drawCellField("state", String(formData.get("state") || ""));
+  drawCellField("pinCode", String(formData.get("pinCode") || ""));
 
-  // 3. Certifier Details
-  drawCellField("certName", String(formData.get("certifierName") || ""), Y_COORDS.certName);
-  drawCellField("certDesignation", String(formData.get("certifierDesignation") || ""), Y_COORDS.certDesignation);
-  
-  // Office Address has 2 rows of boxes!
+  // ── 4. Certifier Details ─────────────────────────────────────────────────
+  drawCellField("certName", String(formData.get("certifierName") || ""));
+  drawCellField("certDesignation", String(formData.get("certifierDesignation") || ""));
+
   const officeAddress = String(formData.get("certifierOfficeAddress") || "");
-  drawCellField("certAddress", officeAddress, Y_COORDS.certAddress);
-  if (officeAddress.length > 30) {
-    drawCellField("certAddressLine2", officeAddress.substring(30), Y_COORDS.certAddressLine2);
+  drawCellField("certAddress", officeAddress);
+  if (officeAddress.length > 24) {
+    drawCellField("certAddressLine2", officeAddress.substring(24));
   }
-  
-  drawCellField("certContact", String(formData.get("certifierContact") || ""), Y_COORDS.certContact);
 
-  // 4. Certifier Type Checkmarks
+  drawCellField("certContact", String(formData.get("certifierContact") || ""));
+
+  // ── 5. Certifier Type Checkmarks ─────────────────────────────────────────
   const cType = formData.get("certifierType") as string | null;
-  const C_TYPE_Y_BASE = pdf2jsonToPdfLib(0, 43.231).y;
-  const cTypeY = {
+  const C_TYPE_Y_BASE = CHECKBOX_Y.certifierType;
+  const cTypeY: Record<string, number> = {
     MP_MLA_MLC: C_TYPE_Y_BASE,
     GazettedA: C_TYPE_Y_BASE - 16,
-    GazettedB: C_TYPE_Y_BASE - 48, // Tehsildar/Gazetted B
+    GazettedB: C_TYPE_Y_BASE - 48,
     NACO: C_TYPE_Y_BASE - 64,
     HeadOfInstitute: C_TYPE_Y_BASE - 96,
     VillagePanchayat: C_TYPE_Y_BASE - 128,
     EPFO: C_TYPE_Y_BASE - 16,
   };
-  
   if (cType && cType in cTypeY) {
-    const yPos = cTypeY[cType as keyof typeof cTypeY];
-    drawCheck(36, yPos);
+    drawCheck(36, cTypeY[cType]);
   }
 
-  // 5. Place Photo and Signature
-  const embedImage = async (file: any) => {
-    if (!file || typeof file.arrayBuffer !== 'function' || file.size === 0) return null;
-    const buffer = await file.arrayBuffer();
-    if (file.type === "image/png") return await pdfDoc.embedPng(buffer);
-    if (file.type === "image/jpeg" || file.type === "image/jpg") return await pdfDoc.embedJpg(buffer);
+  // ── 6. Photo and Signature ────────────────────────────────────────────────
+  const embedImage = async (file: unknown) => {
+    if (!file || typeof (file as File).arrayBuffer !== 'function' || (file as File).size === 0) return null;
+    const buffer = await (file as File).arrayBuffer();
+    if ((file as File).type === "image/png") return await pdfDoc.embedPng(buffer);
+    if ((file as File).type === "image/jpeg" || (file as File).type === "image/jpg") return await pdfDoc.embedJpg(buffer);
     return null;
   };
 
   try {
-    const photoImg = await embedImage(formData.get("photo") as File);
+    const photoImg = await embedImage(formData.get("photo"));
     if (photoImg) {
-      page.drawImage(photoImg, {
-        x: 435,
-        y: 450,
-        width: 105,
-        height: 125,
-      });
+      page.drawImage(photoImg, { x: 435, y: 450, width: 105, height: 125 });
     }
-
-    const sigImg = await embedImage(formData.get("signature") as File);
+    const sigImg = await embedImage(formData.get("signature"));
     if (sigImg) {
-      page.drawImage(sigImg, {
-        x: 320,
-        y: 280,
-        width: 180,
-        height: 45,
-      });
+      page.drawImage(sigImg, { x: 320, y: 280, width: 180, height: 45 });
     }
   } catch (e) {
     console.error("Failed to embed images:", e);
   }
 
-  // Generate date of issue as today
+  // ── 7. Date of Issue ──────────────────────────────────────────────────────
   const today = new Date();
-  const dateStr = today.getDate().toString().padStart(2, "0") + 
-                  (today.getMonth() + 1).toString().padStart(2, "0") + 
-                  today.getFullYear().toString();
-  
-  const dateY = pdf2jsonToPdfLib(0, 8.817).y; 
-  drawCellField("date", dateStr, dateY);
+  const dateStr =
+    today.getDate().toString().padStart(2, "0") +
+    (today.getMonth() + 1).toString().padStart(2, "0") +
+    today.getFullYear().toString();
+  drawCellField("date", dateStr);
 
   const pdfBytes = await pdfDoc.save();
   return pdfBytes;
