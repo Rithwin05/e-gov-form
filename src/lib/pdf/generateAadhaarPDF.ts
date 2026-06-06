@@ -65,26 +65,24 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
 
     for (let i = 0; i < str.length; i++) {
       const char = str[i];
-      const boxX = layout.cells[i];
-      if (boxX === undefined) continue; // safety check
+      const centerX = layout.cells[i];
+      if (centerX === undefined) continue; // safety check
       
       if (DEBUG_CELLS) {
-        page.drawRectangle({
-          x: boxX,
-          y: finalY - 5,
-          width: layout.boxWidth,
-          height: 18,
-          borderColor: rgb(1, 0, 0),
-          borderWidth: 0.3
+        page.drawCircle({
+          x: centerX,
+          y: finalY + 4, // roughly center height
+          size: 1,
+          color: rgb(1, 0, 0),
         });
       }
 
       if (char !== ' ') {
         const charWidth = customFont.widthOfTextAtSize(char, layout.fontSize);
-        const centeredX = boxX + ((layout.boxWidth - charWidth) / 2);
+        const drawX = centerX - (charWidth / 2);
         
         page.drawText(char, {
-          x: centeredX,
+          x: drawX,
           y: finalY,
           size: layout.fontSize,
           font: customFont,

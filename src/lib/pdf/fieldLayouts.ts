@@ -1,151 +1,93 @@
 export interface FieldGeometry {
   yOffset: number;
   fontSize: number;
-  boxWidth: number; // For centering calculation within the cell
   cells: number[];
 }
-
-// Helper to generate mathematical placeholder arrays.
-// You will replace the output of this with your Figma-measured arrays!
-const generateCells = (startX: number, boxWidth: number, count: number): number[] => {
-  return Array.from({ length: count }, (_, i) => Number((startX + (i * boxWidth)).toFixed(2)));
-};
-
-// Helper for the Aadhaar spacing (placeholder math)
-const generateAadhaarCells = (startX: number, boxWidth: number): number[] => {
-  const cells: number[] = [];
-  let currentX = startX;
-  for (let i = 0; i < 12; i++) {
-    if (i === 4 || i === 8) currentX += boxWidth; // gap
-    cells.push(Number(currentX.toFixed(2)));
-    currentX += boxWidth;
-  }
-  return cells;
-};
-
-// Helper for Date spacing (placeholder math)
-const generateDateCells = (startX: number, boxWidth: number): number[] => {
-  const cells: number[] = [];
-  let currentX = startX;
-  for (let i = 0; i < 8; i++) {
-    cells.push(Number(currentX.toFixed(2)));
-    currentX += boxWidth;
-    if (i === 1 || i === 3) currentX += 12; // gap after DD and MM
-  }
-  return cells;
-};
-
-// THESE ARE MATHEMATICAL PLACEHOLDERS! 
-// Replace the generate...(...) calls with your actual Figma measured pixel arrays.
-// Example:
-// fullName: {
-//   yOffset: -2.0,
-//   fontSize: 11,
-//   boxWidth: 23.9, 
-//   cells: [228, 251.9, 275.8, 299.7, ...] // Paste your Figma array here!
-// }
 
 export const FIELD_LAYOUTS: Record<string, FieldGeometry> = {
   aadhaar: {
     yOffset: -1.5,
     fontSize: 12,
-    boxWidth: 19.8,
-    cells: generateAadhaarCells(228, 19.8),
+    cells: [228, 247.8, 267.6, 287.4, 327, 346.8, 366.6, 386.4, 426, 445.8, 465.6, 485.4],
   },
   fullName: {
     yOffset: -2.0,
     fontSize: 11,
-    boxWidth: 23.9,
-    cells: generateCells(228, 23.9, 31),
+    cells: [228, 251.9, 275.8, 299.7, 323.6, 347.5, 371.4, 395.3, 419.2, 443.1, 467, 490.9, 514.8, 538.7, 562.6, 586.5, 610.4, 634.3, 658.2, 682.1, 706, 729.9, 753.8, 777.7, 801.6, 825.5, 849.4, 873.3, 897.2, 921.1, 945],
   },
   houseNo: {
     yOffset: -2.0,
     fontSize: 11,
-    boxWidth: 23.9,
-    cells: generateCells(228, 23.9, 31),
+    cells: [228, 251.9, 275.8, 299.7, 323.6, 347.5, 371.4, 395.3, 419.2, 443.1, 467, 490.9, 514.8, 538.7, 562.6, 586.5, 610.4, 634.3, 658.2, 682.1, 706, 729.9, 753.8, 777.7, 801.6, 825.5, 849.4, 873.3, 897.2, 921.1, 945],
   },
   street: {
     yOffset: -2.0,
     fontSize: 11,
-    boxWidth: 23.9,
-    cells: generateCells(228, 23.9, 31),
+    cells: [228, 251.9, 275.8, 299.7, 323.6, 347.5, 371.4, 395.3, 419.2, 443.1, 467, 490.9, 514.8, 538.7, 562.6, 586.5, 610.4, 634.3, 658.2, 682.1, 706, 729.9, 753.8, 777.7, 801.6, 825.5, 849.4, 873.3, 897.2, 921.1, 945],
   },
   landmark: {
     yOffset: -2.0,
     fontSize: 11,
-    boxWidth: 23.9,
-    cells: generateCells(228, 23.9, 31),
+    cells: [228, 251.9, 275.8, 299.7, 323.6, 347.5, 371.4, 395.3, 419.2, 443.1, 467, 490.9, 514.8, 538.7, 562.6, 586.5, 610.4, 634.3, 658.2, 682.1, 706, 729.9, 753.8, 777.7, 801.6, 825.5, 849.4, 873.3, 897.2, 921.1, 945],
   },
   area: {
     yOffset: -2.0,
     fontSize: 11,
-    boxWidth: 23.9,
-    cells: generateCells(228, 23.9, 31),
+    cells: [228, 251.9, 275.8, 299.7, 323.6, 347.5, 371.4, 395.3, 419.2, 443.1, 467, 490.9, 514.8, 538.7, 562.6, 586.5, 610.4, 634.3, 658.2, 682.1, 706, 729.9, 753.8, 777.7, 801.6, 825.5, 849.4, 873.3, 897.2, 921.1, 945],
   },
   city: {
     yOffset: -2.0,
     fontSize: 11,
-    boxWidth: 23.9,
-    cells: generateCells(228, 23.9, 31),
+    cells: [228, 251.9, 275.8, 299.7, 323.6, 347.5, 371.4, 395.3, 419.2, 443.1, 467, 490.9, 514.8, 538.7, 562.6, 586.5, 610.4, 634.3, 658.2, 682.1, 706, 729.9, 753.8, 777.7, 801.6, 825.5, 849.4, 873.3, 897.2, 921.1, 945],
   },
   postOffice: {
     yOffset: -1.8,
     fontSize: 11,
-    boxWidth: 23.9,
-    cells: generateCells(228, 23.9, 21),
+    cells: [228, 251.9, 275.8, 299.7, 323.6, 347.5, 371.4, 395.3, 419.2, 443.1, 467, 490.9, 514.8, 538.7, 562.6, 586.5, 610.4, 634.3, 658.2, 682.1, 706],
   },
   district: {
     yOffset: -1.8,
     fontSize: 11,
-    boxWidth: 23.9,
-    cells: generateCells(228, 23.9, 21),
+    cells: [228, 251.9, 275.8, 299.7, 323.6, 347.5, 371.4, 395.3, 419.2, 443.1, 467, 490.9, 514.8, 538.7, 562.6, 586.5, 610.4, 634.3, 658.2, 682.1, 706],
   },
   state: {
     yOffset: -1.8,
     fontSize: 11,
-    boxWidth: 23.9,
-    cells: generateCells(228, 23.9, 21),
+    cells: [228, 251.9, 275.8, 299.7, 323.6, 347.5, 371.4, 395.3, 419.2, 443.1, 467, 490.9, 514.8, 538.7, 562.6, 586.5, 610.4, 634.3, 658.2, 682.1, 706],
   },
   pinCode: {
     yOffset: -1.2,
     fontSize: 12,
-    boxWidth: 31.5,
-    cells: generateCells(228, 31.5, 6),
+    cells: [228, 259.5, 291, 322.5, 354, 385.5],
   },
   certName: {
     yOffset: -2.0,
     fontSize: 11,
-    boxWidth: 23.9,
-    cells: generateCells(228, 23.9, 31),
+    cells: [228, 251.9, 275.8, 299.7, 323.6, 347.5, 371.4, 395.3, 419.2, 443.1, 467, 490.9, 514.8, 538.7, 562.6, 586.5, 610.4, 634.3, 658.2, 682.1, 706, 729.9, 753.8, 777.7, 801.6, 825.5, 849.4, 873.3, 897.2, 921.1, 945],
   },
   certDesignation: {
     yOffset: -2.0,
     fontSize: 11,
-    boxWidth: 23.9,
-    cells: generateCells(228, 23.9, 31),
+    cells: [228, 251.9, 275.8, 299.7, 323.6, 347.5, 371.4, 395.3, 419.2, 443.1, 467, 490.9, 514.8, 538.7, 562.6, 586.5, 610.4, 634.3, 658.2, 682.1, 706, 729.9, 753.8, 777.7, 801.6, 825.5, 849.4, 873.3, 897.2, 921.1, 945],
   },
   certAddress: {
     yOffset: -2.0,
     fontSize: 11,
-    boxWidth: 23.9,
-    cells: generateCells(228, 23.9, 31),
+    cells: [228, 251.9, 275.8, 299.7, 323.6, 347.5, 371.4, 395.3, 419.2, 443.1, 467, 490.9, 514.8, 538.7, 562.6, 586.5, 610.4, 634.3, 658.2, 682.1, 706, 729.9, 753.8, 777.7, 801.6, 825.5, 849.4, 873.3, 897.2, 921.1, 945],
   },
   certAddressLine2: {
     yOffset: -2.0,
     fontSize: 11,
-    boxWidth: 23.9,
-    cells: generateCells(228, 23.9, 31),
+    cells: [228, 251.9, 275.8, 299.7, 323.6, 347.5, 371.4, 395.3, 419.2, 443.1, 467, 490.9, 514.8, 538.7, 562.6, 586.5, 610.4, 634.3, 658.2, 682.1, 706, 729.9, 753.8, 777.7, 801.6, 825.5, 849.4, 873.3, 897.2, 921.1, 945],
   },
   certContact: {
     yOffset: -1.5,
     fontSize: 11,
-    boxWidth: 23.5,
-    cells: generateCells(228, 23.5, 10),
+    cells: [228, 251.5, 275, 298.5, 322, 345.5, 369, 392.5, 416, 439.5],
   },
   date: {
     yOffset: -2.0,
     fontSize: 12,
-    boxWidth: 12.8,
-    cells: generateDateCells(415, 12.8),
+    cells: [415, 427.8, 452.6, 465.4, 490.2, 503, 515.8, 528.6],
   }
 };
