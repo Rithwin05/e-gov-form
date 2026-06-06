@@ -2,9 +2,10 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 // Helper to convert pdf2json coordinates to pdf-lib coordinates
 // pdf2json unit = 16 points. pdf-lib origin is bottom-left (y goes up).
+// We subtract 13 from Y to drop the text perfectly into the boxes.
 const pdf2jsonToPdfLib = (x: number, y: number) => ({
   x: x * 16,
-  y: 841.89 - (y * 16)
+  y: 841.89 - (y * 16) - 13
 });
 
 // Calculate fixed Y coordinates based on the extracted PDF text
@@ -27,82 +28,62 @@ const Y_COORDS = {
   certContact: pdf2jsonToPdfLib(0, 39.42).y,      // Contact Number
 };
 
-// Start of text fields is usually horizontally aligned
-const X_START = 160;
+  // Start of standard text grids
+  const GRID_X = 142;
+  const BOX_W = 14.4;
 
-export async function generateAadhaarPDF(formData: FormData, templateBytes: ArrayBuffer): Promise<Uint8Array> {
-  // Load the template PDF
-  const pdfDoc = await PDFDocument.load(templateBytes);
-  
-  const page = pdfDoc.getPages()[0];
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  
-  // Text drawing helper
-  const drawText = (text: string, x: number, y: number, isBold = false, size = 11) => {
-    if (!text) return;
-    page.drawText(String(text).toUpperCase(), {
-      x,
-      y: y - 2, // slight adjustment for baseline
-      size,
-      font: isBold ? boldFont : font,
-      color: rgb(0.1, 0.1, 0.4), // Dark blue to look like pen
-    });
-  };
-
-  // Checkmark drawing helper (draws an X at x,y since WinAnsi doesn't support ✓)
-  const drawCheck = (x: number, y: number) => {
-    page.drawText("X", { x, y: y - 2, size: 14, font: boldFont, color: rgb(0.1, 0.1, 0.4) });
+  const drawGridText = (text: string, startX: number, y: number) => {
+    const str = String(text || "").toUpperCase().replace(/[^A-Z0-9 \/-]/g, '');
+    let currentX = startX;
+    for (let i = 0; i < str.length; i++) {
+      if (str[i] !== ' ') {
+        drawText(str[i], currentX + 3.5, y, true, 11);
+      }
+      currentX += BOX_W;
+    }
   };
 
   // 1. Resident Category & Request Type
   const residentCategory = formData.get("residentCategory");
-  if (residentCategory === "Resident") drawCheck(30, Y_COORDS.residency);
-  else if (residentCategory === "NRI") drawCheck(90, Y_COORDS.residency);
-  else if (residentCategory === "OCI") drawCheck(205, Y_COORDS.residency);
+  if (residentCategory === "Resident") drawCheck(34, Y_COORDS.residency);
+  else if (residentCategory === "NRI") drawCheck(94, Y_COORDS.residency);
+  else if (residentCategory === "OCI") drawCheck(210, Y_COORDS.residency);
 
   const requestType = formData.get("requestType");
-  if (requestType === "NewEnrolment") drawCheck(405, Y_COORDS.residency);
-  else if (requestType === "UpdateRequest") drawCheck(485, Y_COORDS.residency);
+  if (requestType === "NewEnrolment") drawCheck(408, Y_COORDS.residency);
+  else if (requestType === "UpdateRequest") drawCheck(488, Y_COORDS.residency);
 
   // 2. Personal Info
-  // Aadhaar Number is spaced out in boxes.
+  // Aadhaar Number is spaced out in boxes with gaps
   const aadhaarStr = String(formData.get("aadhaarNumber") || "").padEnd(12, " ");
+  let aadhaarX = 183;
   for (let i = 0; i < 12; i++) {
-    // Estimate box width ~ 14.5 points
-    const xPos = 153 + (i * 14.5) + (Math.floor(i / 4) * 10); // add space every 4 digits
-    drawText(aadhaarStr[i].trim(), xPos, Y_COORDS.aadhaar, true, 12);
+    if (aadhaarStr[i] !== ' ') drawText(aadhaarStr[i], aadhaarX + 3.5, Y_COORDS.aadhaar, true, 12);
+    aadhaarX += BOX_W;
+    if (i === 3 || i === 7) aadhaarX += 7; // Gap after 4th and 8th digit
   }
 
-  // Draw other fields
-  drawText(String(formData.get("fullName") || ""), X_START, Y_COORDS.name, true);
-  drawText(String(formData.get("houseNo") || ""), X_START, Y_COORDS.houseNo, true);
-  drawText(String(formData.get("street") || ""), X_START, Y_COORDS.street, true);
-  drawText(String(formData.get("landmark") || ""), X_START, Y_COORDS.landmark, true);
-  drawText(String(formData.get("area") || ""), X_START, Y_COORDS.area, true);
-  drawText(String(formData.get("city") || ""), X_START, Y_COORDS.city, true);
-  drawText(String(formData.get("postOffice") || ""), X_START, Y_COORDS.postOffice, true);
-  drawText(String(formData.get("district") || ""), X_START, Y_COORDS.district, true);
-  drawText(String(formData.get("state") || ""), X_START, Y_COORDS.state, true);
+  // Draw other fields using grid
+  drawGridText(String(formData.get("fullName") || ""), GRID_X, Y_COORDS.name);
+  drawGridText(String(formData.get("houseNo") || ""), GRID_X, Y_COORDS.houseNo);
+  drawGridText(String(formData.get("street") || ""), GRID_X, Y_COORDS.street);
+  drawGridText(String(formData.get("landmark") || ""), GRID_X, Y_COORDS.landmark);
+  drawGridText(String(formData.get("area") || ""), GRID_X, Y_COORDS.area);
+  drawGridText(String(formData.get("city") || ""), GRID_X, Y_COORDS.city);
+  drawGridText(String(formData.get("postOffice") || ""), GRID_X, Y_COORDS.postOffice);
+  drawGridText(String(formData.get("district") || ""), GRID_X, Y_COORDS.district);
+  drawGridText(String(formData.get("state") || ""), GRID_X, Y_COORDS.state);
   
-  // PIN Code boxes
-  const pinStr = String(formData.get("pinCode") || "").padEnd(6, " ");
-  for (let i = 0; i < 6; i++) {
-    const xPos = 153 + (i * 14.5);
-    drawText(pinStr[i].trim(), xPos, Y_COORDS.pinCode, true, 12);
-  }
+  // PIN Code boxes start further right
+  drawGridText(String(formData.get("pinCode") || ""), GRID_X + 2 * BOX_W, Y_COORDS.pinCode);
 
   // 3. Certifier Details
-  drawText(String(formData.get("certifierName") || ""), X_START + 25, Y_COORDS.certName, true);
-  drawText(String(formData.get("certifierDesignation") || ""), X_START - 50, Y_COORDS.certDesignation, true);
-  drawText(String(formData.get("certifierOfficeAddress") || ""), X_START - 25, Y_COORDS.certAddress, true);
+  drawGridText(String(formData.get("certifierName") || ""), GRID_X, Y_COORDS.certName);
+  drawGridText(String(formData.get("certifierDesignation") || ""), GRID_X, Y_COORDS.certDesignation);
+  drawGridText(String(formData.get("certifierOfficeAddress") || ""), GRID_X, Y_COORDS.certAddress);
   
-  // Certifier Contact boxes
-  const contactStr = String(formData.get("certifierContact") || "").padEnd(10, " ");
-  for (let i = 0; i < 10; i++) {
-    const xPos = 145 + (i * 14.5);
-    drawText(contactStr[i].trim(), xPos, Y_COORDS.certContact, true, 12);
-  }
+  // Certifier Contact
+  drawGridText(String(formData.get("certifierContact") || ""), GRID_X + 3 * BOX_W, Y_COORDS.certContact);
 
   // 4. Certifier Type Checkmarks
   const cType = formData.get("certifierType") as string | null;
@@ -118,7 +99,7 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   
   if (cType && cType in cTypeY) {
     const yPos = cTypeY[cType as keyof typeof cTypeY];
-    drawCheck(25, yPos);
+    drawCheck(34, yPos);
   }
 
   // 5. Place Photo and Signature
@@ -167,10 +148,11 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
                   today.getFullYear().toString();
   
   const dateY = pdf2jsonToPdfLib(0, 8.817).y; // "D D M M Y Y Y Y"
+  let currentX = 405;
   for (let i = 0; i < 8; i++) {
-    // Dates are spaced out at top right
-    const xPos = 412 + (i * 12) + (Math.floor(i / 2) * 5) + (Math.floor(i / 4) * 8);
-    drawText(dateStr[i], xPos, dateY, true, 12);
+    drawText(dateStr[i], currentX + 3.5, dateY, true, 12);
+    currentX += BOX_W;
+    if (i === 1 || i === 3) currentX += 7; // Gap after DD and MM
   }
 
   const pdfBytes = await pdfDoc.save();
