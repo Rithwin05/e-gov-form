@@ -51,11 +51,11 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
 
   // Checkmark drawing helper (draws an X at x,y since WinAnsi doesn't support ✓)
   const drawCheck = (x: number, y: number) => {
-    page.drawText("X", { x, y: y - 2, size: 14, font: boldFont, color: rgb(0.1, 0.1, 0.4) });
+    page.drawText("X", { x, y: y - 4, size: 14, font: boldFont, color: rgb(0.1, 0.1, 0.4) });
   };
 
   // Start of standard text grids
-  const GRID_X = 142; // Universal left edge of ALL boxes
+  const GRID_X = 138; // Universal left edge of Full Name, Address, etc.
   const BOX_W = 12.8; // Measured exact width of one character box
 
   const drawGridText = (text: string, startX: number, y: number, maxLength: number) => {
@@ -80,9 +80,9 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   else if (requestType === "UpdateRequest") drawCheck(485, Y_COORDS.residency);
 
   // 2. Personal Info
-  // Aadhaar Number starts 2 boxes right, has empty gaps after 4th and 8th digit
+  // Aadhaar Number starts exactly at 6th Full Name box in the actual template
   const aadhaarStr = String(formData.get("aadhaarNumber") || "").padEnd(12, " ");
-  let aadhaarX = GRID_X + 2 * BOX_W;
+  let aadhaarX = 202; // 138 + 5 * 12.8 = 202
   for (let i = 0; i < 12; i++) {
     if (i === 4 || i === 8) {
       aadhaarX += BOX_W; // Empty box gap
@@ -104,8 +104,8 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   drawGridText(String(formData.get("district") || ""), GRID_X, Y_COORDS.district, 21);
   drawGridText(String(formData.get("state") || ""), GRID_X, Y_COORDS.state, 21);
   
-  // PIN Code boxes start flush left
-  drawGridText(String(formData.get("pinCode") || ""), GRID_X, Y_COORDS.pinCode, 6);
+  // PIN Code boxes start at 13th box of Full Name in the actual template
+  drawGridText(String(formData.get("pinCode") || ""), 292, Y_COORDS.pinCode, 6);
 
   // 3. Certifier Details
   drawGridText(String(formData.get("certifierName") || ""), GRID_X, Y_COORDS.certName, 30);
@@ -118,8 +118,8 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
     drawGridText(officeAddress.substring(30), GRID_X, Y_COORDS.certAddressLine2, 30);
   }
   
-  // Certifier Contact starts flush left
-  drawGridText(String(formData.get("certifierContact") || ""), GRID_X, Y_COORDS.certContact, 10);
+  // Certifier Contact starts at 11th box of Office Address in actual template
+  drawGridText(String(formData.get("certifierContact") || ""), 266, Y_COORDS.certContact, 10);
 
   // 4. Certifier Type Checkmarks
   const cType = formData.get("certifierType") as string | null;
