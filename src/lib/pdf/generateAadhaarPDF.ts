@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument, rgb, LineCapStyle } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import fs from "fs";
 import path from "path";
@@ -69,11 +69,6 @@ export async function generateAadhaarPDF(
 
   const page = pdfDoc.getPages()[0];
 
-  // Helvetica Bold — used for the ✓ tick drawn in Latin encoding
-  const helvaticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-  // ZapfDingbats — character "4" renders as ✔ (heavy check mark)
-  const dingbats = await pdfDoc.embedFont(StandardFonts.ZapfDingbats);
 
   // RobotoMono-Bold TTF — perfect monospaced glyph widths for cell text
   const fontPath = path.join(process.cwd(), "public", "fonts", "RobotoMono-Bold.ttf");
@@ -81,15 +76,27 @@ export async function generateAadhaarPDF(
   const customFont = await pdfDoc.embedFont(fontBytes);
 
   // ── Tick-mark helper ────────────────────────────────────────────────────────
-  // Draws a ✔ (ZapfDingbats char "4") at (x, y)
+  // Draws a ✔ using two vector line segments — no font encoding required.
+  // The tick is centred at (x, y) and scales with `size`.
   const drawTick = (x: number, y: number, size = 10) => {
-    // "4" in ZapfDingbats = ✔ (HEAVY CHECK MARK)
-    page.drawText("4", {
-      x,
-      y: y - 1,
-      size,
-      font: dingbats,
-      color: rgb(0.05, 0.05, 0.35),
+    const s = size / 10; // scale factor
+    const tickColor = rgb(0.05, 0.05, 0.35);
+    const thickness = Math.max(1, s * 1.4);
+    // Short descending stroke (foot of the ✓)
+    page.drawLine({
+      start: { x: x,           y: y + s * 3 },
+      end:   { x: x + s * 2.5, y: y },
+      thickness,
+      color: tickColor,
+      lineCap: LineCapStyle.Round,
+    });
+    // Long ascending stroke (body of the ✓)
+    page.drawLine({
+      start: { x: x + s * 2.5, y: y },
+      end:   { x: x + s * 8,   y: y + s * 7 },
+      thickness,
+      color: tickColor,
+      lineCap: LineCapStyle.Round,
     });
   };
 
@@ -247,9 +254,6 @@ export async function generateAadhaarPDF(
   const yyyy = today.getFullYear().toString();
   // Build 8-char string: DDMMYYYY
   drawCellField("date", dd + mm + yyyy);
-
-  // ── Helvatica Bold kept in scope to avoid unused-variable warnings ──────────
-  void helvaticaBold;
 
   return pdfDoc.save();
 }
