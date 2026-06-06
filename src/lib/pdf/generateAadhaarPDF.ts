@@ -54,15 +54,15 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   };
 
   // Start of standard text grids
-  const GRID_X = 146; // Left edge of Full Name, Address, etc.
-  const BOX_W = 13.3; // Measured precise width of one character box
+  const GRID_X = 142; // Universal left edge of ALL boxes
+  const BOX_W = 12.8; // Measured exact width of one character box
 
   const drawGridText = (text: string, startX: number, y: number) => {
     const str = String(text || "").toUpperCase().replace(/[^A-Z0-9 \/-]/g, '');
     let currentX = startX;
     for (let i = 0; i < str.length; i++) {
       if (str[i] !== ' ') {
-        drawText(str[i], currentX + 3.2, y, true, 11);
+        drawText(str[i], currentX + 3.0, y, true, 11);
       }
       currentX += BOX_W;
     }
@@ -70,20 +70,23 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
 
   // 1. Resident Category & Request Type
   const residentCategory = formData.get("residentCategory");
-  if (residentCategory === "Resident") drawCheck(37, Y_COORDS.residency);
-  else if (residentCategory === "NRI") drawCheck(94, Y_COORDS.residency);
-  else if (residentCategory === "OCI") drawCheck(200, Y_COORDS.residency);
+  if (residentCategory === "Resident") drawCheck(42, Y_COORDS.residency);
+  else if (residentCategory === "NRI") drawCheck(97, Y_COORDS.residency);
+  else if (residentCategory === "OCI") drawCheck(204, Y_COORDS.residency);
 
   const requestType = formData.get("requestType");
-  if (requestType === "NewEnrolment") drawCheck(408, Y_COORDS.residency);
-  else if (requestType === "UpdateRequest") drawCheck(488, Y_COORDS.residency);
+  if (requestType === "NewEnrolment") drawCheck(412, Y_COORDS.residency);
+  else if (requestType === "UpdateRequest") drawCheck(485, Y_COORDS.residency);
 
   // 2. Personal Info
-  // Aadhaar Number boxes are contiguous (no gaps)
+  // Aadhaar Number boxes are 12 boxes with 2 empty gap boxes
   const aadhaarStr = String(formData.get("aadhaarNumber") || "").padEnd(12, " ");
-  let aadhaarX = 212; // Start of Aadhaar boxes
+  let aadhaarX = GRID_X; // Aadhaar starts flush left with the rest
   for (let i = 0; i < 12; i++) {
-    if (aadhaarStr[i] !== ' ') drawText(aadhaarStr[i], aadhaarX + 3.2, Y_COORDS.aadhaar, true, 12);
+    if (i === 4 || i === 8) {
+      aadhaarX += BOX_W; // Empty box gap
+    }
+    if (aadhaarStr[i] !== ' ') drawText(aadhaarStr[i], aadhaarX + 3.0, Y_COORDS.aadhaar, true, 12);
     aadhaarX += BOX_W;
   }
 
@@ -98,16 +101,16 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   drawGridText(String(formData.get("district") || ""), GRID_X, Y_COORDS.district);
   drawGridText(String(formData.get("state") || ""), GRID_X, Y_COORDS.state);
   
-  // PIN Code boxes start further right
-  drawGridText(String(formData.get("pinCode") || ""), 168, Y_COORDS.pinCode);
+  // PIN Code boxes start flush left
+  drawGridText(String(formData.get("pinCode") || ""), GRID_X, Y_COORDS.pinCode);
 
   // 3. Certifier Details
   drawGridText(String(formData.get("certifierName") || ""), GRID_X, Y_COORDS.certName);
   drawGridText(String(formData.get("certifierDesignation") || ""), GRID_X, Y_COORDS.certDesignation);
   drawGridText(String(formData.get("certifierOfficeAddress") || ""), GRID_X, Y_COORDS.certAddress);
   
-  // Certifier Contact
-  drawGridText(String(formData.get("certifierContact") || ""), 181, Y_COORDS.certContact);
+  // Certifier Contact flush left
+  drawGridText(String(formData.get("certifierContact") || ""), GRID_X, Y_COORDS.certContact);
 
   // 4. Certifier Type Checkmarks
   const cType = formData.get("certifierType") as string | null;
@@ -124,7 +127,7 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   
   if (cType && cType in cTypeY) {
     const yPos = cTypeY[cType as keyof typeof cTypeY];
-    drawCheck(34, yPos);
+    drawCheck(40, yPos);
   }
 
   // 5. Place Photo and Signature
@@ -173,11 +176,11 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
                   today.getFullYear().toString();
   
   const dateY = pdf2jsonToPdfLib(0, 8.817).y; // "D D M M Y Y Y Y"
-  let currentX = 418;
+  let dateX = 415;
   for (let i = 0; i < 8; i++) {
-    drawText(dateStr[i], currentX + 3.2, dateY, true, 12);
-    currentX += BOX_W;
-    if (i === 1 || i === 3) currentX += 10; // Gap after DD and MM
+    drawText(dateStr[i], dateX + 3.0, dateY, true, 12);
+    dateX += BOX_W;
+    if (i === 1 || i === 3) dateX += 12; // Gap after DD and MM
   }
 
   const pdfBytes = await pdfDoc.save();
