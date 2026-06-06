@@ -57,8 +57,8 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   const GRID_X = 142; // Universal left edge of ALL boxes
   const BOX_W = 12.8; // Measured exact width of one character box
 
-  const drawGridText = (text: string, startX: number, y: number) => {
-    const str = String(text || "").toUpperCase().replace(/[^A-Z0-9 \/-]/g, '');
+  const drawGridText = (text: string, startX: number, y: number, maxLength: number) => {
+    const str = String(text || "").toUpperCase().replace(/[^A-Z0-9 \/-]/g, '').substring(0, maxLength);
     let currentX = startX;
     for (let i = 0; i < str.length; i++) {
       if (str[i] !== ' ') {
@@ -79,38 +79,32 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   else if (requestType === "UpdateRequest") drawCheck(485, Y_COORDS.residency);
 
   // 2. Personal Info
-  // Aadhaar Number boxes are 12 boxes with 2 empty gap boxes
-  const aadhaarStr = String(formData.get("aadhaarNumber") || "").padEnd(12, " ");
-  let aadhaarX = GRID_X; // Aadhaar starts flush left with the rest
-  for (let i = 0; i < 12; i++) {
-    if (i === 4 || i === 8) {
-      aadhaarX += BOX_W; // Empty box gap
-    }
-    if (aadhaarStr[i] !== ' ') drawText(aadhaarStr[i], aadhaarX + 3.0, Y_COORDS.aadhaar, true, 12);
-    aadhaarX += BOX_W;
-  }
+  // Aadhaar Number boxes start 2 boxes right, NO gaps
+  drawGridText(String(formData.get("aadhaarNumber") || ""), GRID_X + 2 * BOX_W, Y_COORDS.aadhaar, 12);
 
-  // Draw other fields using grid
-  drawGridText(String(formData.get("fullName") || ""), GRID_X, Y_COORDS.name);
-  drawGridText(String(formData.get("houseNo") || ""), GRID_X, Y_COORDS.houseNo);
-  drawGridText(String(formData.get("street") || ""), GRID_X, Y_COORDS.street);
-  drawGridText(String(formData.get("landmark") || ""), GRID_X, Y_COORDS.landmark);
-  drawGridText(String(formData.get("area") || ""), GRID_X, Y_COORDS.area);
-  drawGridText(String(formData.get("city") || ""), GRID_X, Y_COORDS.city);
-  drawGridText(String(formData.get("postOffice") || ""), GRID_X, Y_COORDS.postOffice);
-  drawGridText(String(formData.get("district") || ""), GRID_X, Y_COORDS.district);
-  drawGridText(String(formData.get("state") || ""), GRID_X, Y_COORDS.state);
+  // Draw other fields using grid with strict max character limits to prevent overflow
+  drawGridText(String(formData.get("fullName") || ""), GRID_X, Y_COORDS.name, 30);
+  drawGridText(String(formData.get("houseNo") || ""), GRID_X, Y_COORDS.houseNo, 30);
+  drawGridText(String(formData.get("street") || ""), GRID_X, Y_COORDS.street, 30);
+  drawGridText(String(formData.get("landmark") || ""), GRID_X, Y_COORDS.landmark, 30);
+  drawGridText(String(formData.get("area") || ""), GRID_X, Y_COORDS.area, 30);
+  drawGridText(String(formData.get("city") || ""), GRID_X, Y_COORDS.city, 30);
   
-  // PIN Code boxes start flush left
-  drawGridText(String(formData.get("pinCode") || ""), GRID_X, Y_COORDS.pinCode);
+  // Post Office, District, State are shorter because of the Photo box
+  drawGridText(String(formData.get("postOffice") || ""), GRID_X, Y_COORDS.postOffice, 21);
+  drawGridText(String(formData.get("district") || ""), GRID_X, Y_COORDS.district, 21);
+  drawGridText(String(formData.get("state") || ""), GRID_X, Y_COORDS.state, 21);
+  
+  // PIN Code boxes start 2 boxes right
+  drawGridText(String(formData.get("pinCode") || ""), GRID_X + 2 * BOX_W, Y_COORDS.pinCode, 6);
 
   // 3. Certifier Details
-  drawGridText(String(formData.get("certifierName") || ""), GRID_X, Y_COORDS.certName);
-  drawGridText(String(formData.get("certifierDesignation") || ""), GRID_X, Y_COORDS.certDesignation);
-  drawGridText(String(formData.get("certifierOfficeAddress") || ""), GRID_X, Y_COORDS.certAddress);
+  drawGridText(String(formData.get("certifierName") || ""), GRID_X, Y_COORDS.certName, 30);
+  drawGridText(String(formData.get("certifierDesignation") || ""), GRID_X, Y_COORDS.certDesignation, 30);
+  drawGridText(String(formData.get("certifierOfficeAddress") || ""), GRID_X, Y_COORDS.certAddress, 30);
   
-  // Certifier Contact flush left
-  drawGridText(String(formData.get("certifierContact") || ""), GRID_X, Y_COORDS.certContact);
+  // Certifier Contact starts 2 boxes right
+  drawGridText(String(formData.get("certifierContact") || ""), GRID_X + 2 * BOX_W, Y_COORDS.certContact, 10);
 
   // 4. Certifier Type Checkmarks
   const cType = formData.get("certifierType") as string | null;
@@ -127,7 +121,7 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   
   if (cType && cType in cTypeY) {
     const yPos = cTypeY[cType as keyof typeof cTypeY];
-    drawCheck(40, yPos);
+    drawCheck(36, yPos);
   }
 
   // 5. Place Photo and Signature
