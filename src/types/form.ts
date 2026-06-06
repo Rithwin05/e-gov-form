@@ -56,6 +56,9 @@ export const aadhaarFormSchema = z.object({
 
   photo: z.any().optional(), // Will store File | null in the state
   signature: z.any().optional(),
+
+  // Whether the certifier checklist boxes should all be ticked
+  fillChecklist: z.boolean().optional(),
 });
 
 export type AadhaarFormData = z.infer<typeof aadhaarFormSchema>;
