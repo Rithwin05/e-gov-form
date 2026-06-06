@@ -2,6 +2,7 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import fs from "fs";
 import path from "path";
+import { FIELD_LAYOUTS } from "./fieldLayouts";
 
 // Helper to convert pdf2json coordinates to pdf-lib coordinates
 // pdf2json unit = 16 points. pdf-lib origin is bottom-left (y goes up).
@@ -35,33 +36,6 @@ const Y_COORDS = {
 // FIELD CALIBRATION SYSTEM
 const DEBUG_CELLS = true;
 
-interface CellField {
-  startX: number;
-  yOffset: number;
-  boxWidth: number;
-  boxCount: number;
-  fontSize: number;
-}
-
-const FIELD_LAYOUTS: Record<string, CellField> = {
-  aadhaar:          { startX: 228, yOffset: -1.5, boxWidth: 19.8, boxCount: 12, fontSize: 12 },
-  fullName:         { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
-  houseNo:          { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
-  street:           { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
-  landmark:         { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
-  area:             { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
-  city:             { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
-  postOffice:       { startX: 228, yOffset: -1.8, boxWidth: 23.9, boxCount: 21, fontSize: 11 },
-  district:         { startX: 228, yOffset: -1.8, boxWidth: 23.9, boxCount: 21, fontSize: 11 },
-  state:            { startX: 228, yOffset: -1.8, boxWidth: 23.9, boxCount: 21, fontSize: 11 },
-  pinCode:          { startX: 228, yOffset: -1.2, boxWidth: 31.5, boxCount: 6,  fontSize: 12 },
-  certName:         { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
-  certDesignation:  { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
-  certAddress:      { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
-  certAddressLine2: { startX: 228, yOffset: -2.0, boxWidth: 23.9, boxCount: 31, fontSize: 11 },
-  certContact:      { startX: 228, yOffset: -1.5, boxWidth: 23.5, boxCount: 15, fontSize: 11 },
-};
-
 export async function generateAadhaarPDF(formData: FormData, templateBytes: ArrayBuffer): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.load(templateBytes);
   
@@ -81,17 +55,18 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
     page.drawText("X", { x, y: y - 4, size: 14, font: boldFont, color: rgb(0.1, 0.1, 0.4) });
   };
 
-  // Dedicated Cell Renderer
+  // Dedicated Cell Renderer utilizing precomputed cell array coordinates
   const drawCellField = (fieldId: string, text: string, yBase: number) => {
     const layout = FIELD_LAYOUTS[fieldId];
     if (!layout) return;
 
-    const str = String(text || "").toUpperCase().replace(/[^A-Z0-9 \/\-.,']/g, '').substring(0, layout.boxCount);
+    const str = String(text || "").toUpperCase().replace(/[^A-Z0-9 \/\-.,']/g, '').substring(0, layout.cells.length);
     const finalY = yBase + layout.yOffset;
 
     for (let i = 0; i < str.length; i++) {
       const char = str[i];
-      const boxX = layout.startX + (i * layout.boxWidth);
+      const boxX = layout.cells[i];
+      if (boxX === undefined) continue; // safety check
       
       if (DEBUG_CELLS) {
         page.drawRectangle({
@@ -216,36 +191,8 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
                   (today.getMonth() + 1).toString().padStart(2, "0") + 
                   today.getFullYear().toString();
   
-  const dateY = pdf2jsonToPdfLib(0, 8.817).y - 2; 
-  let dateX = 415;
-  const dateBoxW = 12.8;
-  for (let i = 0; i < 8; i++) {
-    if (DEBUG_CELLS) {
-      page.drawRectangle({
-        x: dateX,
-        y: dateY - 5,
-        width: dateBoxW,
-        height: 18,
-        borderColor: rgb(1, 0, 0),
-        borderWidth: 0.3
-      });
-    }
-
-    const char = dateStr[i];
-    if (char !== ' ') {
-      const charWidth = customFont.widthOfTextAtSize(char, 12);
-      const centeredX = dateX + ((dateBoxW - charWidth) / 2);
-      page.drawText(char, {
-          x: centeredX,
-          y: dateY,
-          size: 12,
-          font: customFont,
-          color: rgb(0.1, 0.1, 0.4)
-      });
-    }
-    dateX += dateBoxW;
-    if (i === 1 || i === 3) dateX += 12; // Gap after DD and MM
-  }
+  const dateY = pdf2jsonToPdfLib(0, 8.817).y; 
+  drawCellField("date", dateStr, dateY);
 
   const pdfBytes = await pdfDoc.save();
   return pdfBytes;
