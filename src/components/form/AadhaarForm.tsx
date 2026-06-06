@@ -65,9 +65,10 @@ export function AadhaarForm() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error generating PDF:", error);
-      alert(`There was an error generating the PDF: ${error.message}`);
+      const message = error instanceof Error ? error.message : "Unknown error occurred";
+      alert(`There was an error generating the PDF: ${message}`);
     } finally {
       setIsSubmitting(false);
     }

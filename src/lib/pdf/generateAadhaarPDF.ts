@@ -41,7 +41,7 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
     const layout = FIELD_LAYOUTS[fieldId];
     if (!layout) return;
 
-    const str = String(text || "").toUpperCase().replace(/[^A-Z0-9 \/\-.,'-]/g, '').substring(0, layout.cells.length);
+    const str = String(text || "").toUpperCase().replace(/[^A-Z0-9 /\-.,']/g, '').substring(0, layout.cells.length);
     const finalY = layout.yBasePDF + layout.yOffset;
 
     for (let i = 0; i < str.length; i++) {
@@ -103,7 +103,8 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
 
   const officeAddress = String(formData.get("certifierOfficeAddress") || "");
   drawCellField("certAddress", officeAddress);
-  if (officeAddress.length > 24) {
+  // FULL_ROW_CENTERS has 24 cells; overflow starts at index 24
+  if (officeAddress.length >= 24) {
     drawCellField("certAddressLine2", officeAddress.substring(24));
   }
 
@@ -112,14 +113,17 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   // ── 5. Certifier Type Checkmarks ─────────────────────────────────────────
   const cType = formData.get("certifierType") as string | null;
   const C_TYPE_Y_BASE = CHECKBOX_Y.certifierType;
+  // Map all certifierType enum values to their checkbox Y positions on the form
   const cTypeY: Record<string, number> = {
-    MP_MLA_MLC: C_TYPE_Y_BASE,
-    GazettedA: C_TYPE_Y_BASE - 16,
-    GazettedB: C_TYPE_Y_BASE - 48,
-    NACO: C_TYPE_Y_BASE - 64,
-    HeadOfInstitute: C_TYPE_Y_BASE - 96,
+    MP_MLA_MLC:       C_TYPE_Y_BASE,
+    GazettedA:        C_TYPE_Y_BASE - 16,   // EPFO also maps here (same box)
+    EPFO:             C_TYPE_Y_BASE - 16,
+    GazettedB:        C_TYPE_Y_BASE - 48,   // Tehsildar also maps here
+    Tehsildar:        C_TYPE_Y_BASE - 48,
+    NACO:             C_TYPE_Y_BASE - 64,
+    HeadOfInstitute:  C_TYPE_Y_BASE - 96,
+    Superintendent:   C_TYPE_Y_BASE - 96,   // Grouped with HeadOfInstitute
     VillagePanchayat: C_TYPE_Y_BASE - 128,
-    EPFO: C_TYPE_Y_BASE - 16,
   };
   if (cType && cType in cTypeY) {
     drawCheck(36, cTypeY[cType]);

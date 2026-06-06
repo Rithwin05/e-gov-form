@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { useDropzone, DropzoneOptions } from "react-dropzone";
 import { UploadCloud, X, FileImage } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,16 @@ export function FileUploadDropzone({
 }: FileUploadDropzoneProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Revoke the object URL when the component unmounts to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
