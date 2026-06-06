@@ -51,7 +51,8 @@ export function AadhaarForm() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to generate PDF");
+        const errData = await response.json();
+        throw new Error(errData.details || "Failed to generate PDF");
       }
 
       // Handle PDF download
@@ -64,9 +65,9 @@ export function AadhaarForm() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating PDF:", error);
-      alert("There was an error generating the PDF. Please try again.");
+      alert(`There was an error generating the PDF: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }

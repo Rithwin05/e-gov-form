@@ -1,6 +1,4 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import { readFile } from "fs/promises";
-import path from "path";
 
 // Helper to convert pdf2json coordinates to pdf-lib coordinates
 // pdf2json unit = 16 points. pdf-lib origin is bottom-left (y goes up).
@@ -32,10 +30,8 @@ const Y_COORDS = {
 // Start of text fields is usually horizontally aligned
 const X_START = 160;
 
-export async function generateAadhaarPDF(formData: FormData): Promise<Uint8Array> {
+export async function generateAadhaarPDF(formData: FormData, templateBytes: ArrayBuffer): Promise<Uint8Array> {
   // Load the template PDF
-  const templatePath = path.join(process.cwd(), 'public', 'List_of_Supporting_Document.pdf');
-  const templateBytes = await readFile(templatePath);
   const pdfDoc = await PDFDocument.load(templateBytes);
   
   const page = pdfDoc.getPages()[0];
