@@ -34,7 +34,7 @@ const X_START = 160;
 
 export async function generateAadhaarPDF(formData: FormData): Promise<Uint8Array> {
   // Load the template PDF
-  const templatePath = path.join(process.cwd(), 'Forms_public', 'List_of_Supporting_Document.pdf');
+  const templatePath = path.join(process.cwd(), 'public', 'List_of_Supporting_Document.pdf');
   const templateBytes = await readFile(templatePath);
   const pdfDoc = await PDFDocument.load(templateBytes);
   
@@ -126,8 +126,8 @@ export async function generateAadhaarPDF(formData: FormData): Promise<Uint8Array
   }
 
   // 5. Place Photo and Signature
-  const embedImage = async (file: File) => {
-    if (!file || file.size === 0) return null;
+  const embedImage = async (file: any) => {
+    if (!file || typeof file.arrayBuffer !== 'function' || file.size === 0) return null;
     const buffer = await file.arrayBuffer();
     if (file.type === "image/png") return await pdfDoc.embedPng(buffer);
     if (file.type === "image/jpeg" || file.type === "image/jpg") return await pdfDoc.embedJpg(buffer);
