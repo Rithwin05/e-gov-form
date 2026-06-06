@@ -177,9 +177,9 @@ export async function generateAadhaarPDF(
   // ══════════════════════════════════════════════════════════════════════════════
   drawCellField("postOffice", String(formData.get("postOffice") || ""));
   drawCellField("district",   String(formData.get("district")  || ""));
-  drawCellField("state", String(formData.get("state") || "").substring(0, 14));
-  if (String(formData.get("state") || "").length > 14) {
-    drawCellField("stateLine2", String(formData.get("state") || "").substring(14, 28));
+  drawCellField("state", String(formData.get("state") || "").substring(0, 18));
+  if (String(formData.get("state") || "").length > 18) {
+    drawCellField("stateLine2", String(formData.get("state") || "").substring(18, 36));
   }
   drawCellField("pinCode", String(formData.get("pinCode") || "").substring(0, 6));
 

@@ -141,9 +141,15 @@ export const FIELD_LAYOUTS: Record<string, FieldGeometry> = {
     fontSize: 11,
     cells: SHORT_ROW_CENTERS,
   },
+  stateLine2: {
+    yBasePDF: 380.3,
+    yOffset: BASE_OFFSET,
+    fontSize: 11,
+    cells: SHORT_ROW_CENTERS,
+  },
 
   pinCode: {
-    yBasePDF: 380.3,
+    yBasePDF: 359.6,
     yOffset: BASE_OFFSET,
     fontSize: 12,
     cells: PIN_CENTERS,
