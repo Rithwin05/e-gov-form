@@ -82,7 +82,7 @@ export function AadhaarForm() {
     } else if (currentStep === 3) {
       fieldsToValidate.push("requestType");
     } else if (currentStep === 4) {
-      fieldsToValidate.push("certifierName", "certifierDesignation", "certifierOfficeAddress", "certifierContact");
+      fieldsToValidate.push("certifierName", "certifierDesignation", "certifierOfficeAddress", "certifierContact", "certifierType");
     }
 
     const isStepValid = await form.trigger(fieldsToValidate);

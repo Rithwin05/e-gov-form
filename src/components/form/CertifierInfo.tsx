@@ -2,6 +2,7 @@ import React from "react";
 import { UseFormReturn } from "react-hook-form";
 import { AadhaarFormData } from "@/types/form";
 import { InputField } from "@/components/ui/InputField";
+import { SelectField } from "@/components/ui/SelectField";
 
 interface CertifierInfoProps {
   form: UseFormReturn<AadhaarFormData>;
@@ -52,6 +53,21 @@ export function CertifierInfo({ form }: CertifierInfoProps) {
           required
           {...register("certifierContact")}
           error={errors.certifierContact?.message as string}
+        />
+        <SelectField
+          label="Certifier Type"
+          required
+          options={[
+            { value: "GazettedA", label: "Gazetted Officer Group 'A' / EPFO" },
+            { value: "GazettedB", label: "Gazetted Officer Group 'B' / Tehsildar" },
+            { value: "MP_MLA_MLC", label: "MP / MLA / MLC / Municipal Councillor" },
+            { value: "VillagePanchayat", label: "Village Panchayat Head / Mukhiya" },
+            { value: "HeadOfInstitute", label: "Head of Recognised Educational Institution" },
+            { value: "Superintendent", label: "Superintendent / Warden / Matron" },
+            { value: "NACO", label: "Gazetted Officer at NACO / State Health Dept" }
+          ]}
+          {...register("certifierType")}
+          error={errors.certifierType?.message as string}
         />
       </div>
     </div>

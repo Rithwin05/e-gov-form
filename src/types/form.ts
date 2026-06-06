@@ -40,6 +40,20 @@ export const aadhaarFormSchema = z.object({
   certifierOfficeAddress: z.string().min(1, "Certifier office address is required"),
   certifierContact: z.string().regex(/^\d{10}$/, "Contact number must be exactly 10 digits"),
 
+  certifierType: z.enum([
+    "GazettedA",
+    "VillagePanchayat",
+    "GazettedB",
+    "MP_MLA_MLC",
+    "Tehsildar",
+    "HeadOfInstitute",
+    "EPFO",
+    "Superintendent",
+    "NACO"
+  ], {
+    error: "Please select a certifier type"
+  }),
+
   photo: z.any().optional(), // Will store File | null in the state
   signature: z.any().optional(),
 });

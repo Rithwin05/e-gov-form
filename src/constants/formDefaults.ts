@@ -18,4 +18,5 @@ export const defaultFormValues: Partial<AadhaarFormData> = {
   certifierDesignation: "",
   certifierOfficeAddress: "",
   certifierContact: "",
+  certifierType: "GazettedA",
 };
