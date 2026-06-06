@@ -24,7 +24,8 @@ const Y_COORDS = {
   pinCode: pdf2jsonToPdfLib(0, 29.071).y,         // PIN Code
   certName: pdf2jsonToPdfLib(0, 34.173).y,        // Name of Certifier
   certDesignation: pdf2jsonToPdfLib(0, 35.47).y,  // Designation
-  certAddress: pdf2jsonToPdfLib(0, 36.767).y,     // Office Address
+  certAddress: pdf2jsonToPdfLib(0, 36.767).y,     // Office Address Line 1
+  certAddressLine2: pdf2jsonToPdfLib(0, 38.06).y, // Office Address Line 2
   certContact: pdf2jsonToPdfLib(0, 39.42).y,      // Contact Number
 };
 
@@ -68,18 +69,6 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
     }
   };
 
-  const drawIndentedGridText = (text: string, startX: number, y: number, maxLength: number) => {
-    const str = String(text || "").toUpperCase().replace(/[^A-Z0-9 \/-]/g, '').substring(0, maxLength);
-    let currentX = startX;
-    const indentedBoxW = 14.4; // Aadhaar, PIN, Contact use wider standard boxes
-    for (let i = 0; i < str.length; i++) {
-      if (str[i] !== ' ') {
-        drawText(str[i], currentX + 3.5, y, true, 11);
-      }
-      currentX += indentedBoxW;
-    }
-  };
-
   // 1. Resident Category & Request Type
   const residentCategory = formData.get("residentCategory");
   if (residentCategory === "Resident") drawCheck(42, Y_COORDS.residency);
@@ -91,9 +80,16 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   else if (requestType === "UpdateRequest") drawCheck(485, Y_COORDS.residency);
 
   // 2. Personal Info
-  // Aadhaar Number uses wider boxes, no gaps
-  const INDENT_X = GRID_X + 2 * BOX_W;
-  drawIndentedGridText(String(formData.get("aadhaarNumber") || ""), INDENT_X, Y_COORDS.aadhaar, 12);
+  // Aadhaar Number starts 2 boxes right, has empty gaps after 4th and 8th digit
+  const aadhaarStr = String(formData.get("aadhaarNumber") || "").padEnd(12, " ");
+  let aadhaarX = GRID_X + 2 * BOX_W;
+  for (let i = 0; i < 12; i++) {
+    if (i === 4 || i === 8) {
+      aadhaarX += BOX_W; // Empty box gap
+    }
+    if (aadhaarStr[i] !== ' ') drawText(aadhaarStr[i], aadhaarX + 3.0, Y_COORDS.aadhaar, true, 12);
+    aadhaarX += BOX_W;
+  }
 
   // Draw other fields using grid with strict max character limits to prevent overflow
   drawGridText(String(formData.get("fullName") || ""), GRID_X, Y_COORDS.name, 30);
@@ -108,16 +104,22 @@ export async function generateAadhaarPDF(formData: FormData, templateBytes: Arra
   drawGridText(String(formData.get("district") || ""), GRID_X, Y_COORDS.district, 21);
   drawGridText(String(formData.get("state") || ""), GRID_X, Y_COORDS.state, 21);
   
-  // PIN Code boxes start 2 boxes right, use wider boxes
-  drawIndentedGridText(String(formData.get("pinCode") || ""), INDENT_X, Y_COORDS.pinCode, 6);
+  // PIN Code boxes start flush left
+  drawGridText(String(formData.get("pinCode") || ""), GRID_X, Y_COORDS.pinCode, 6);
 
   // 3. Certifier Details
   drawGridText(String(formData.get("certifierName") || ""), GRID_X, Y_COORDS.certName, 30);
   drawGridText(String(formData.get("certifierDesignation") || ""), GRID_X, Y_COORDS.certDesignation, 30);
-  drawGridText(String(formData.get("certifierOfficeAddress") || ""), GRID_X, Y_COORDS.certAddress, 30);
   
-  // Certifier Contact starts 2 boxes right, uses wider boxes
-  drawIndentedGridText(String(formData.get("certifierContact") || ""), INDENT_X, Y_COORDS.certContact, 10);
+  // Office Address has 2 rows of boxes!
+  const officeAddress = String(formData.get("certifierOfficeAddress") || "");
+  drawGridText(officeAddress, GRID_X, Y_COORDS.certAddress, 30);
+  if (officeAddress.length > 30) {
+    drawGridText(officeAddress.substring(30), GRID_X, Y_COORDS.certAddressLine2, 30);
+  }
+  
+  // Certifier Contact starts flush left
+  drawGridText(String(formData.get("certifierContact") || ""), GRID_X, Y_COORDS.certContact, 10);
 
   // 4. Certifier Type Checkmarks
   const cType = formData.get("certifierType") as string | null;
