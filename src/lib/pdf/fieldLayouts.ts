@@ -20,12 +20,14 @@ export interface FieldGeometry {
 // These are NATIVE PDF POINT coordinates. No Figma. No pixel scaling.
 // ============================================================================
 
-// The 24-cell full-width text row
-// (Full Name, House No, Street, Landmark, Area, City, Cert rows)
+// The 23-cell full-width text row
+// The Aadhaar form has exactly 23 boxes per full row, not 24.
 const FULL_ROW_CENTERS = [
-  140.87, 158.42, 177.97, 195.52, 215.07, 232.62, 252.17, 269.72,
-  289.27, 306.82, 326.37, 344.87, 363.47, 381.97, 400.57, 419.07,
-  437.67, 456.17, 474.77, 492.42, 511.87, 530.37, 548.97, 566.62,
+  140.87, 158.42, 177.97, 195.52, 215.07,
+  232.62, 252.17, 269.72, 289.27, 306.82,
+  326.37, 344.87, 363.47, 381.97, 400.57,
+  419.07, 437.67, 456.17, 474.77, 492.42,
+  511.87, 530.37, 548.97,
 ];
 
 // The 18-cell short row (Post Office, District, State)

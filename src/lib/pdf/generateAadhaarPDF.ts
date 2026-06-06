@@ -177,8 +177,11 @@ export async function generateAadhaarPDF(
   // ══════════════════════════════════════════════════════════════════════════════
   drawCellField("postOffice", String(formData.get("postOffice") || ""));
   drawCellField("district",   String(formData.get("district")  || ""));
-  drawCellField("state",      String(formData.get("state")     || ""));
-  drawCellField("pinCode",    String(formData.get("pinCode")   || ""));
+  drawCellField("state", String(formData.get("state") || "").substring(0, 14));
+  if (String(formData.get("state") || "").length > 14) {
+    drawCellField("stateLine2", String(formData.get("state") || "").substring(14, 28));
+  }
+  drawCellField("pinCode", String(formData.get("pinCode") || "").substring(0, 6));
 
   // ══════════════════════════════════════════════════════════════════════════════
   // 4. CERTIFIER DETAILS
@@ -186,11 +189,11 @@ export async function generateAadhaarPDF(
   drawCellField("certName",        String(formData.get("certifierName")        || ""));
   drawCellField("certDesignation", String(formData.get("certifierDesignation") || ""));
 
-  // Office Address — split across 2 physical box rows (24 cells each)
+  // Office Address — split across 2 physical box rows (23 cells each)
   const officeAddress = String(formData.get("certifierOfficeAddress") || "");
-  drawCellField("certAddress", officeAddress.substring(0, 24));
-  if (officeAddress.length > 24) {
-    drawCellField("certAddressLine2", officeAddress.substring(24, 48));
+  drawCellField("certAddress", officeAddress.substring(0, 23));
+  if (officeAddress.length > 23) {
+    drawCellField("certAddressLine2", officeAddress.substring(23, 46));
   }
 
   drawCellField("certContact", String(formData.get("certifierContact") || ""));
