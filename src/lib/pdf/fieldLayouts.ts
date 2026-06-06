@@ -50,10 +50,10 @@ const CONTACT_CENTERS = [
   232.62, 252.17, 269.72, 289.27, 306.82,
 ];
 
-// Date: 8 cells (DD MM YYYY) at top-right of form, inside the Fm0 XObject.
-// Extracted from Fm0 at Y≈765. The 8 cells span X≈523–560 on the page.
-// Two gaps: after D[1] and after M[1] (between the DD|MM|YYYY groupings).
-const DATE_CENTERS = [530.5, 535.7, 541.9, 550.3, 557.9, 560.0, 563.5, 567.0];
+// Date: 8 cells (DD MM YYYY) at top-right of form
+// Found via exact rectangle parsing in main stream (Y=684.1, Width=15.8)
+// X centers calculated: x + w/2
+const DATE_CENTERS = [418.2, 434.0, 460.9, 476.7, 503.6, 519.4, 535.2, 550.9];
 
 // Text baseline sits ~3pt above the cell bottom
 const BASE_OFFSET = 3.0;
@@ -183,9 +183,9 @@ export const FIELD_LAYOUTS: Record<string, FieldGeometry> = {
     cells: CONTACT_CENTERS,
   },
 
-  // Date of Issue: 8 cells (DDMMYYYY) at top-right in Fm0 XObject
+  // Date of Issue: 8 cells (DDMMYYYY) at top-right
   date: {
-    yBasePDF: 765.7,
+    yBasePDF: 684.1,
     yOffset: BASE_OFFSET,
     fontSize: 10,
     cells: DATE_CENTERS,

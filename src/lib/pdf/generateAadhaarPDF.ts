@@ -7,55 +7,49 @@ import { FIELD_LAYOUTS } from "./fieldLayouts";
 // DEBUG: Set to true to draw red dots at exact cell center coordinates
 const DEBUG_CELLS = false;
 
-// Residency / request-type checkboxes sit above the grid rows.
-// These use the old pdf2json Y formula which remains accurate for the checkbox area.
-const pdf2jsonY = (pdfJsonY: number) => 841.89 - pdfJsonY * 16 - 13;
-
 // ── Checkbox Y-coordinate constants ──────────────────────────────────────────
-const RESIDENCY_Y = pdf2jsonY(11.823); // "Resident", "NRI", "OCI" row
-const CERTIFIER_TYPE_Y_BASE = pdf2jsonY(43.231); // First certifier-type checkbox
+// These were extracted by finding the exact `re` (rectangle) operators in the PDF stream.
+// Coordinates are exact centers of the checkbox borders.
+const RESIDENCY_Y = 643.5;
 
-// Resident-category checkbox X positions
+// Resident-category checkbox X positions (exact centers)
 const RESIDENT_CHECKBOX_X = {
-  Resident: 42,
-  NRI: 97,
-  OCI: 204,
+  Resident: 43.1,
+  NRI: 99.8,
+  OCI: 213.0,
   // LTV / Nepal / Bhutan / Foreign all share the third combined OCI/LTV box
-  LTV: 204,
-  Nepal: 204,
-  Bhutan: 204,
-  Foreign: 204,
+  LTV: 213.0,
+  Nepal: 213.0,
+  Bhutan: 213.0,
+  Foreign: 213.0,
 };
 
-// Request-type checkbox X positions
+// Request-type checkbox X positions (exact centers)
 const REQUEST_TYPE_X = {
-  NewEnrolment: 408,
-  UpdateRequest: 485,
+  NewEnrolment: 416.0,
+  UpdateRequest: 495.4,
 };
 
-// Certifier type → Y offset from base (each option is a separate row in the form)
+// Certifier type → exact Y center
 const CERTIFIER_TYPE_Y_MAP: Record<string, number> = {
-  MP_MLA_MLC:       CERTIFIER_TYPE_Y_BASE,
-  GazettedA:        CERTIFIER_TYPE_Y_BASE - 16,
-  EPFO:             CERTIFIER_TYPE_Y_BASE - 16,
-  GazettedB:        CERTIFIER_TYPE_Y_BASE - 48,
-  Tehsildar:        CERTIFIER_TYPE_Y_BASE - 48,
-  NACO:             CERTIFIER_TYPE_Y_BASE - 64,
-  HeadOfInstitute:  CERTIFIER_TYPE_Y_BASE - 96,
-  Superintendent:   CERTIFIER_TYPE_Y_BASE - 96,
-  VillagePanchayat: CERTIFIER_TYPE_Y_BASE - 128,
+  MP_MLA_MLC:       149.5,
+  GazettedA:        140.5,
+  EPFO:             140.5,
+  GazettedB:        123.5,
+  Tehsildar:        123.5,
+  NACO:             113.5,
+  HeadOfInstitute:  96.5,
+  Superintendent:   96.5,
+  VillagePanchayat: 80.5,
 };
 
-// ── CHECKLIST FOR CERTIFIER checkbox positions ────────────────────────────────
-// Row 1 of the checklist (4 items) — at bottom of the form
-const CHECKLIST_ROW1_Y = 163.0;
-const CHECKLIST_ROW2_Y = 150.5;
+// ── CHECKLIST FOR CERTIFIER checkbox positions (exact centers) ────────────────
 const CHECKLIST_POSITIONS = [
-  { x: 303.0, y: CHECKLIST_ROW1_Y }, // No overwriting
-  { x: 343.0, y: CHECKLIST_ROW1_Y }, // Issue date is filled
-  { x: 394.0, y: CHECKLIST_ROW1_Y }, // Resident's signature
-  { x: 449.0, y: CHECKLIST_ROW1_Y }, // Certifier's details
-  { x: 303.0, y: CHECKLIST_ROW2_Y }, // Photo cross-signed and stamped
+  { x: 274.7, y: 167.8 }, // No overwriting
+  { x: 339.7, y: 167.8 }, // Issue date is filled
+  { x: 413.7, y: 167.8 }, // Resident's signature
+  { x: 495.7, y: 167.8 }, // Certifier's details
+  { x: 274.7, y: 157.8 }, // Photo cross-signed and stamped
 ];
 
 export async function generateAadhaarPDF(
@@ -206,7 +200,8 @@ export async function generateAadhaarPDF(
   // ══════════════════════════════════════════════════════════════════════════════
   const cType = formData.get("certifierType") as string | null;
   if (cType && cType in CERTIFIER_TYPE_Y_MAP) {
-    drawTick(36, CERTIFIER_TYPE_Y_MAP[cType]);
+    // Certifier Type checkboxes are perfectly aligned at X=39.7
+    drawTick(39.7, CERTIFIER_TYPE_Y_MAP[cType]);
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
