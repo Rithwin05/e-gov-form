@@ -1,22 +1,32 @@
 import { NextResponse } from "next/server";
 import { generateAadhaarPDF } from "@/lib/pdf/generateAadhaarPDF";
 
+// Explicitly use Node.js runtime so fs/path and pdf-lib work correctly on Vercel
+export const runtime = "nodejs";
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    
-    // Fetch the template PDF from the public folder using the absolute request URL
-    const templateUrl = new URL("/List_of_Supporting_Document.pdf", request.url);
-    const templateRes = await fetch(templateUrl.toString());
+
+    const baseUrl = new URL(request.url).origin;
+
+    // Fetch the Aadhaar template PDF from the public folder
+    const templateRes = await fetch(`${baseUrl}/List_of_Supporting_Document.pdf`);
     if (!templateRes.ok) {
-      throw new Error(`Failed to load PDF template from ${templateUrl.toString()}: ${templateRes.statusText}`);
+      throw new Error(`Failed to load PDF template: ${templateRes.statusText}`);
     }
     const templateBytes = await templateRes.arrayBuffer();
 
-    // Generate the PDF
-    const pdfBytes = await generateAadhaarPDF(formData, templateBytes);
+    // Fetch the RobotoMono-Bold font from the public folder
+    const fontRes = await fetch(`${baseUrl}/fonts/RobotoMono-Bold.ttf`);
+    if (!fontRes.ok) {
+      throw new Error(`Failed to load font: ${fontRes.statusText}`);
+    }
+    const fontBytes = await fontRes.arrayBuffer();
 
-    // Return it as a blob
+    // Generate the filled PDF
+    const pdfBytes = await generateAadhaarPDF(formData, templateBytes, fontBytes);
+
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
@@ -27,7 +37,10 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("PDF Generation Error:", error);
     return NextResponse.json(
-      { error: "Failed to generate PDF", details: error instanceof Error ? error.message : String(error) },
+      {
+        error: "Failed to generate PDF",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

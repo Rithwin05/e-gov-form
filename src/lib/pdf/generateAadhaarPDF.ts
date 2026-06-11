@@ -1,7 +1,5 @@
 import { PDFDocument, rgb, LineCapStyle } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import fs from "fs";
-import path from "path";
 import { FIELD_LAYOUTS } from "./fieldLayouts";
 
 // DEBUG: Set to true to draw red dots at exact cell center coordinates
@@ -54,7 +52,8 @@ const CHECKLIST_POSITIONS = [
 
 export async function generateAadhaarPDF(
   formData: FormData,
-  templateBytes: ArrayBuffer
+  templateBytes: ArrayBuffer,
+  fontBytes: ArrayBuffer
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.load(templateBytes);
 
@@ -64,9 +63,7 @@ export async function generateAadhaarPDF(
   const page = pdfDoc.getPages()[0];
 
 
-  // RobotoMono-Bold TTF — perfect monospaced glyph widths for cell text
-  const fontPath = path.join(process.cwd(), "public", "fonts", "RobotoMono-Bold.ttf");
-  const fontBytes = fs.readFileSync(fontPath);
+  // RobotoMono-Bold TTF — fetched by the API route and passed in as fontBytes
   const customFont = await pdfDoc.embedFont(fontBytes);
 
   // ── Tick-mark helper ────────────────────────────────────────────────────────
