@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,8 +16,6 @@ import { Uploads } from "./Uploads";
 import { FormNavigation } from "./FormNavigation";
 import { FormPreview } from "@/components/preview/FormPreview";
 
-// Step 6 is the "Preview & Confirm" screen — no submission happens until the user
-// clicks "Download PDF" on that final screen.
 const STEPS = [
   "Personal Info",
   "Category",
@@ -27,9 +25,17 @@ const STEPS = [
   "Preview",
 ];
 
+const PREVIEW_STEP = 6;
+
 export function AadhaarForm() {
   const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating]   = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [pdfBlobUrl, setPdfBlobUrl]       = useState<string | null>(null);
+  const [previewError, setPreviewError]   = useState<string | null>(null);
+
+  // Keep a ref to the raw blob so we can download it without re-generating
+  const pdfBlobRef = useRef<Blob | null>(null);
 
   const form = useForm<AadhaarFormData>({
     resolver: zodResolver(aadhaarFormSchema),
@@ -37,68 +43,112 @@ export function AadhaarForm() {
     mode: "onChange",
   });
 
-  const processForm = async (data: AadhaarFormData) => {
-    setIsSubmitting(true);
-    try {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (value instanceof File) {
-          formData.append(key, value);
-        } else if (value !== undefined && value !== null) {
-          formData.append(key, String(value));
-        }
-      });
+  // ── Build FormData from form values ──────────────────────────────────────────
+  const buildFormData = useCallback(() => {
+    const data = form.getValues();
+    const fd = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+      if (value instanceof File) {
+        fd.append(key, value);
+      } else if (value !== undefined && value !== null) {
+        fd.append(key, String(value));
+      }
+    });
+    return fd;
+  }, [form]);
 
+  // ── Generate the PDF and store the blob URL ───────────────────────────────
+  const generatePreview = useCallback(async () => {
+    // Revoke any previous blob URL
+    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+    setPdfBlobUrl(null);
+    setPreviewError(null);
+    pdfBlobRef.current = null;
+    setIsGenerating(true);
+
+    try {
       const response = await fetch("/api/generate-pdf", {
         method: "POST",
-        body: formData,
+        body: buildFormData(),
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.details || "Failed to generate PDF");
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.details || `Server error ${response.status}`);
       }
 
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "aadhaar_certificate.pdf";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error: unknown) {
-      console.error("Error generating PDF:", error);
-      const message = error instanceof Error ? error.message : "Unknown error occurred";
-      alert(`There was an error generating the PDF: ${message}`);
+      pdfBlobRef.current = blob;
+      const url = URL.createObjectURL(blob);
+      setPdfBlobUrl(url);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setPreviewError(msg);
+      console.error("Preview generation failed:", err);
     } finally {
-      setIsSubmitting(false);
+      setIsGenerating(false);
     }
-  };
+  }, [buildFormData, pdfBlobUrl]);
 
+  // ── Download — uses already-generated blob, no extra API call ─────────────
+  const handleDownload = useCallback(async () => {
+    if (isDownloading) return;
+
+    // If for some reason the blob isn't ready yet, re-generate
+    if (!pdfBlobRef.current) {
+      setIsDownloading(true);
+      try {
+        const response = await fetch("/api/generate-pdf", {
+          method: "POST",
+          body: buildFormData(),
+        });
+        if (!response.ok) throw new Error("Failed to generate PDF");
+        pdfBlobRef.current = await response.blob();
+      } catch (err) {
+        alert("Could not download PDF. Please try again.");
+        console.error(err);
+        setIsDownloading(false);
+        return;
+      }
+    }
+
+    const url = URL.createObjectURL(pdfBlobRef.current);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "aadhaar_certificate.pdf";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // Delay revoke so the browser has time to start the download
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    setIsDownloading(false);
+  }, [buildFormData, isDownloading]);
+
+  // ── Step validation ───────────────────────────────────────────────────────
   const validateStep = async () => {
-    const fieldsToValidate: (keyof AadhaarFormData)[] = [];
-
+    const fields: (keyof AadhaarFormData)[] = [];
     if (currentStep === 1) {
-      fieldsToValidate.push("aadhaarNumber", "fullName", "houseNo", "street", "landmark", "area", "city", "postOffice", "district", "state", "pinCode");
+      fields.push("aadhaarNumber", "fullName", "houseNo", "street", "landmark", "area", "city", "postOffice", "district", "state", "pinCode");
     } else if (currentStep === 2) {
-      fieldsToValidate.push("residentCategory");
+      fields.push("residentCategory");
     } else if (currentStep === 3) {
-      fieldsToValidate.push("requestType");
+      fields.push("requestType");
     } else if (currentStep === 4) {
-      fieldsToValidate.push("certifierName", "certifierDesignation", "certifierOfficeAddress", "certifierContact", "certifierType");
+      fields.push("certifierName", "certifierDesignation", "certifierOfficeAddress", "certifierContact", "certifierType");
     }
-    // Step 5 (Uploads) and Step 6 (Preview) need no additional validation
-
-    const isStepValid = await form.trigger(fieldsToValidate);
-    return isStepValid;
+    return form.trigger(fields);
   };
 
   const handleNext = async () => {
     const isValid = await validateStep();
-    if (isValid) {
-      setCurrentStep((prev) => Math.min(prev + 1, STEPS.length));
+    if (!isValid) return;
+
+    const next = Math.min(currentStep + 1, STEPS.length);
+    setCurrentStep(next);
+
+    // Auto-generate preview when entering the Preview step
+    if (next === PREVIEW_STEP) {
+      generatePreview();
     }
   };
 
@@ -112,11 +162,12 @@ export function AadhaarForm() {
         <StepIndicator currentStep={currentStep} totalSteps={STEPS.length} steps={STEPS} />
       </div>
 
-      <form onSubmit={form.handleSubmit(processForm)} className="relative">
+      {/* No <form> submit needed — download is handled imperatively */}
+      <div className="relative">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
-            initial={{ opacity: 0, x: currentStep === STEPS.length ? 0 : 20 }}
+            initial={{ opacity: 0, x: currentStep === PREVIEW_STEP ? 0 : 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.25 }}
@@ -126,7 +177,13 @@ export function AadhaarForm() {
             {currentStep === 3 && <RequestType form={form} />}
             {currentStep === 4 && <CertifierInfo form={form} />}
             {currentStep === 5 && <Uploads form={form} />}
-            {currentStep === 6 && <FormPreview form={form} />}
+            {currentStep === PREVIEW_STEP && (
+              <FormPreview
+                pdfBlobUrl={pdfBlobUrl}
+                isGenerating={isGenerating}
+                error={previewError}
+              />
+            )}
           </motion.div>
         </AnimatePresence>
 
@@ -135,9 +192,12 @@ export function AadhaarForm() {
           totalSteps={STEPS.length}
           onNext={handleNext}
           onPrev={handlePrev}
-          isSubmitting={isSubmitting}
+          onDownload={handleDownload}
+          isGenerating={isGenerating}
+          isDownloading={isDownloading}
+          hasPdf={!!pdfBlobUrl}
         />
-      </form>
+      </div>
     </div>
   );
 }
