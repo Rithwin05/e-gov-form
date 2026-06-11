@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/Button";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download } from "lucide-react";
 
 interface FormNavigationProps {
   currentStep: number;
@@ -11,6 +11,8 @@ interface FormNavigationProps {
 }
 
 export function FormNavigation({ currentStep, totalSteps, onNext, onPrev, isSubmitting }: FormNavigationProps) {
+  const isLastStep = currentStep === totalSteps;
+
   return (
     <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-800">
       <Button
@@ -24,15 +26,28 @@ export function FormNavigation({ currentStep, totalSteps, onNext, onPrev, isSubm
         Previous
       </Button>
 
-      {currentStep < totalSteps ? (
-        <Button type="button" onClick={onNext}>
-          Next Step
-          <ArrowRight className="w-4 h-4 ml-2" />
+      {isLastStep ? (
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[160px] gap-2"
+        >
+          {isSubmitting ? (
+            <>
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Generating…
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4" />
+              Download PDF
+            </>
+          )}
         </Button>
       ) : (
-        <Button type="submit" disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-          {isSubmitting ? "Processing..." : "Generate PDF"}
-          {!isSubmitting && <Check className="w-4 h-4 ml-2" />}
+        <Button type="button" onClick={onNext} disabled={isSubmitting}>
+          Next Step
+          <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       )}
     </div>

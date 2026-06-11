@@ -14,13 +14,17 @@ import { RequestType } from "./RequestType";
 import { CertifierInfo } from "./CertifierInfo";
 import { Uploads } from "./Uploads";
 import { FormNavigation } from "./FormNavigation";
+import { FormPreview } from "@/components/preview/FormPreview";
 
+// Step 6 is the "Preview & Confirm" screen — no submission happens until the user
+// clicks "Download PDF" on that final screen.
 const STEPS = [
   "Personal Info",
   "Category",
   "Request Type",
   "Certifier",
   "Uploads",
+  "Preview",
 ];
 
 export function AadhaarForm() {
@@ -55,7 +59,6 @@ export function AadhaarForm() {
         throw new Error(errData.details || "Failed to generate PDF");
       }
 
-      // Handle PDF download
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -76,7 +79,7 @@ export function AadhaarForm() {
 
   const validateStep = async () => {
     const fieldsToValidate: (keyof AadhaarFormData)[] = [];
-    
+
     if (currentStep === 1) {
       fieldsToValidate.push("aadhaarNumber", "fullName", "houseNo", "street", "landmark", "area", "city", "postOffice", "district", "state", "pinCode");
     } else if (currentStep === 2) {
@@ -86,6 +89,7 @@ export function AadhaarForm() {
     } else if (currentStep === 4) {
       fieldsToValidate.push("certifierName", "certifierDesignation", "certifierOfficeAddress", "certifierContact", "certifierType");
     }
+    // Step 5 (Uploads) and Step 6 (Preview) need no additional validation
 
     const isStepValid = await form.trigger(fieldsToValidate);
     return isStepValid;
@@ -112,16 +116,17 @@ export function AadhaarForm() {
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: currentStep === STEPS.length ? 0 : 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25 }}
           >
             {currentStep === 1 && <PersonalInfo form={form} />}
             {currentStep === 2 && <CategorySelect form={form} />}
             {currentStep === 3 && <RequestType form={form} />}
             {currentStep === 4 && <CertifierInfo form={form} />}
             {currentStep === 5 && <Uploads form={form} />}
+            {currentStep === 6 && <FormPreview form={form} />}
           </motion.div>
         </AnimatePresence>
 
