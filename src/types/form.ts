@@ -1,19 +1,5 @@
 import { z } from "zod";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-
-// Helper to validate file size and type
-const imageSchema = z
-  .any()
-  .refine((file) => file instanceof File, "File is required")
-  .refine((file) => file?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
-  .refine(
-    (file) => ACCEPTED_IMAGE_TYPES.includes(file?.type),
-    "Only .jpg, .jpeg, .png and .webp formats are supported."
-  )
-  .optional(); // Optional because we might allow skipping uploads until the end
-
 export const aadhaarFormSchema = z.object({
   aadhaarNumber: z.string().regex(/^\d{12}$/, "Aadhaar number must be exactly 12 digits"),
   fullName: z.string().min(1, "Full name is required").max(100, "Name must be under 100 characters"),

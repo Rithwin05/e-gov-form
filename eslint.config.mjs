@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Root-level CommonJS dev/debug scripts — not part of Next.js app source
+    "dump-pdf-stream.js",
+    "extract-cell-geometry.js",
+    "extract-coords.js",
+    "inspect-pdf.js",
   ]),
 ]);
 

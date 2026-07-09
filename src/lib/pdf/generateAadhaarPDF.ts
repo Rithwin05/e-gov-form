@@ -71,7 +71,7 @@ export async function generateAadhaarPDF(
   // The tick is centred at (x, y) and scales with `size`.
   const drawTick = (x: number, y: number, size = 10) => {
     const s = size / 10; // scale factor
-    const tickColor = rgb(0.05, 0.05, 0.35);
+    const tickColor = rgb(0.18, 0.27, 0.70);
     const thickness = Math.max(1, s * 1.4);
     // Short descending stroke (foot of the ✓)
     page.drawLine({
@@ -126,7 +126,7 @@ export async function generateAadhaarPDF(
           y: finalY,
           size: layout.fontSize,
           font: customFont,
-          color: rgb(0.05, 0.05, 0.35),
+          color: rgb(0.18, 0.27, 0.70),
         });
       }
     }

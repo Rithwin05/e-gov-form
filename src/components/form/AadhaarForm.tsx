@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,7 +44,11 @@ export function AadhaarForm() {
     defaultValues: defaultFormValues,
     mode: "onChange",
   });
-  formRef.current = form;
+
+  // Keep the ref in sync after every render — safe to write refs in effects
+  useEffect(() => {
+    formRef.current = form;
+  });
 
   // ── Build FormData snapshot ───────────────────────────────────────────────
   function buildFormData() {
